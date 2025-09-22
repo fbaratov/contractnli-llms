@@ -3,6 +3,8 @@ from ollama import generate
 
 # other stuff
 import logging
+logging.basicConfig(level=logging.INFO)
+import re
 
 def assemble_prompt(premise, hypothesis):
     # preprocessing step
@@ -15,7 +17,7 @@ Contract: {premise}
 
 Hypothesis: {hypothesis}
 
-Answer conditions: State only what is requested in the format. Exclude quotes around answer or around evidence sentences.
+Answer conditions: State only what is requested in the format. Exclude quotes around answer or around evidence sentences. If no evidence present, give no evidence.
 
 Answer format:
 Answer: 'True', 'False', or 'Not Mentioned'
@@ -35,43 +37,52 @@ def extract_answer(response):
     # postprocessing step
     
     output = response.response
-    match = re.match(r"^Answer:\s*(.*)", text)
+    match = re.match(r"^Answer:\s*(.*)", output)
     if match:
         nli = match.group(1)  # Output: This is the correct response.
     else:
         nli = None
     
-    evidence = re.findall("^\*\s*(.*)", text, re.MULTILINE)
+    evidence = re.findall("^\*\s*(.*)", output, re.MULTILINE)
     
     if nli is None:
         logging.warning("Failure to extract answer")
     if nli in ['True', 'False'] and evidence is None:
         logging.warning("Failure to extract evidence despite T/F answer")
     if nli in ['Not Mentioned'] and evidence is not None:
-        logging.warning("Evidence extracted despite Not Mentioned answer")
+        logging.warning(f"Evidence extracted despite Not Mentioned answer: {evidence}")
+
+    return nli, evidence
    
 def main():
     # run single sample through model, return model output and sample-specific metrics 
-    contract = "Chocolate milk is illegal in the state of Nevada. We are allowed to sell your information to the Kremlin. Chocolate milk is however legal in the Las Vegas Special Autonomous Zone. We are not allowed to sell your information to Mongolia."
-    label1, hypothesis1 = "True", "The contract allows selling information to the Kremlin."
-    label2, hypothesis2 = "False", "The contract does allows selling information to Mongolia."
+    contract = "Chocolate milk is illegal in the state of Nevada. We are allowed to sell your information to Meta. Chocolate milk is however legal in the Las Vegas Special Autonomous Zone. We are not allowed to share your information with Google."
+    label1, hypothesis1 = "True", "The contract allows selling information to Meta."
+    label2, hypothesis2 = "False", "The contract allows sharing information with Google."
     label3, hypothesis3 = "Not Mentioned", "The employer recognizes John Helldiver is the greatest human to have ever lived."
     
     with open("output.txt", "w") as f:
         for hypo in [hypothesis1, hypothesis2, hypothesis3]:
             prompt = assemble_prompt(contract, hypo)
             response = prompt_model(prompt)
-            extracted_answer = extract_answer(response)
-            
+            extraction = extract_answer(response)
+            answer, evidence = extraction
+            logging.info(f"""
+{hypo}
+
+ANSWER: {answer}
+EVIDENCE: {evidence}
+""")
             output = f"""
 =======================>
 =======================>
 =================> INPUT
-{prompt}
+  Contract: {contract} ---->
+Hypothesis: {hypo}
 <=======================
 
 <================ OUTPUT
-{extracted_answer}
+{extraction}
 =======================>
 =======================>
 =======================>
@@ -79,7 +90,6 @@ def main():
 
         """
             f.write(output)
-            print(output)
 
     
 if __name__=="__main__":
