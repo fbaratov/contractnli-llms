@@ -11,18 +11,18 @@ import re
 
 
 
-def fstr(template: str):
+def fstr(template: str, **kwargs):
     """
     Evaluates given string as an f-string.  
     """
-    return eval(f'f"""{template}"""')
+    return eval(f'f"""{template}"""', {}, kwargs)
 
 def assemble_prompt(contract, hypothesis, prompt_template="default"):
     # added to avoid warnings
     contract = contract
     hypothesis = hypothesis 
 
-    prompt = fstr(prompts[prompt_template])
+    prompt = fstr(prompts[prompt_template], contract=contract, hypothesis=hypothesis)
 
     return prompt
 
