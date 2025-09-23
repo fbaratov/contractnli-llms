@@ -28,9 +28,9 @@ def save_response(config, ex, response, answer, evidence, output_dir):
         "document_id": ex.document_id,
         "hypothesis_id": ex.hypothesis_id,
         "response": response,
-        "answer": answer,
+        "prediction": answer,
         "nli_label": ex.label.to_anno_name(),
-        "evidence": evidence,
+        "prediction_evidence": evidence,
         "annotated_spans": get_evidence(ex)
     }
     output.update(config)
@@ -55,7 +55,7 @@ def zero_shot(config, output_dir):
         response, answer, evidence = process_sample(ex, config)
         # save answer to output/sample_idx
         save_response(config, ex, response, answer, evidence, output_dir)
-        break
+        
     # <==
 
     logging.info("Inference complete.")
@@ -68,8 +68,8 @@ def zero_shot(config, output_dir):
 @click.option("--run_label", type=click.Path(exists=False), default="normal_run")
 def main(config_path, output_dir, run_label):
     config = load_config(config_path)
-    model = config["model"]
-    run_output_dir = f"{output_dir}/{model}/{run_label}"
+    model, prompt = config["model"], config["prompt"]
+    run_output_dir = f"{output_dir}/{model}/{prompt}/{run_label}"
     zero_shot(config, run_output_dir)
 
 if __name__=="__main__":
