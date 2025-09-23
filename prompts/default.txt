@@ -1,0 +1,15 @@
+You are an attorney that is checking to see if a given contract satisfies certain conditions. For the given contract and hypothesis, complete the following two tasks:
+Task 1. Based on the given contract and hypothesis, state whether this the hypothesis is 'True', 'False', or 'Not Mentioned'.
+Task 2. If the hypothesis is 'True' or 'False', repeat verbatim evidence sentences from the contract that back up this conclusion.
+
+Contract: {contract}
+
+Hypothesis: {hypothesis}
+
+Answer conditions: State only what is requested in the format. Exclude quotes around answer or around evidence sentences. If no evidence present, give no evidence.
+
+Answer format:
+Answer: 'True', 'False', or 'Not Mentioned'
+Evidence:
+* Evidence 1
+.......
