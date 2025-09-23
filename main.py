@@ -19,7 +19,7 @@ test_dataset = "data/test.json"
 
 def load_config(yaml_path):
     with open(yaml_path, "r") as f:
-        config = yaml.safe_load(yaml_path)
+        config = yaml.safe_load(f)
     return config
 
 def save_response(response, idx,  output_dir):
@@ -47,14 +47,17 @@ def zero_shot(model, prompt, output_dir):
 @click.command()
 # @click.argument("model", type=str, default="gemma3")
 # @click.argument("prompt", type=str, default="default")
-@click.argument("config_path", type=click.Path(exists=False), default="configs/default.yml")
-@click.argument("output_dir", type=click.Path(), default="responses")
-@click.argument("run_label", type=click.Path(exists=False), default="normal_run")
+@click.option("--config_path", type=click.Path(exists=False))
+@click.option("--output_dir", type=click.Path(), default="responses")
+@click.option("--run_label", type=click.Path(exists=False), default="normal_run")
 def main(config_path, output_dir, run_label):
     config = load_config(config_path)
     model, prompt = config["model"], config["prompt"]
     run_output_dir = f"{output_dir}/{model}/{run_label}"
-    zero_shot(config, run_output_dir)
+    print(config)
+    print(model, prompt, run_output_dir)
+
+    # zero_shot(model, prompt, run_output_dir)
 
 if __name__=="__main__":
     main()
