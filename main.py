@@ -29,13 +29,13 @@ def save_response(config, ex, response, answer, evidence, output_dir):
         "hypothesis_id": ex.hypothesis_id,
         "response": response,
         "answer": answer,
-        "nli_label": ex.label,
+        "nli_label": ex.label.to_anno_name(),
         "evidence": evidence,
         "annotated_spans": get_evidence(ex)
     }
     output.update(config)
     
-    filename = f"response_{output["document_id"]}_{output["hypothesis_id"]}.json"
+    filename = f"response_{output['document_id']}_{output['hypothesis_id']}.json"
     with open(f"{output_dir}/{filename}", "w") as f:
         json.dump(output, f)
 
@@ -55,6 +55,7 @@ def zero_shot(config, output_dir):
         response, answer, evidence = process_sample(ex, config)
         # save answer to output/sample_idx
         save_response(config, ex, response, answer, evidence, output_dir)
+        break
     # <==
 
     logging.info("Inference complete.")
