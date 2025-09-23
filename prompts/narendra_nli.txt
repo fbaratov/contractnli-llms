@@ -2,4 +2,4 @@ Document: {contract}
 
 Hypothesis: {hypothesis}
 
-Given a document and a hypothesis, determine whether the document entails or contradicts the hypothesis. Answer strictly as "Entailment" or "Contradiction"
+Given a document and a hypothesis, determine whether the document entails or contradicts the hypothesis. Answer strictly as \"Entailment\" or \"Contradiction\"
