@@ -36,6 +36,7 @@ def extract_answer(response):
     
     output = response.response
     match = re.match(r"^Answer:\s*(.*)", output)
+    match = re.sub(r'[^\w\s]', '', match)
     if match:
         nli = match.group(1)  # Output: This is the correct response.
     else:
@@ -43,12 +44,15 @@ def extract_answer(response):
     
     evidence = re.findall("^\*\s*(.*)", output, re.MULTILINE)
     
+    if nli.lower() not in (s.lower() for s in ['True', 'False', 'Not Mentioned']):
+        logging.warning(f"Model has provided invalid answer {nli}")
+
     if nli is None:
         logging.warning("Failure to extract answer")
-    if nli in ['True', 'False'] and evidence is None:
+    elif nli in ['True', 'False'] and evidence is None:
         logging.warning("Failure to extract evidence despite T/F answer")
-    if nli in ['Not Mentioned'] and evidence is not None:
-        logging.info(f"Evidence extracted despite Not Mentioned answer: {evidence}")
+    elif nli in ['Not Mentioned'] and evidence is not None:
+        logging.warning(f"Evidence extracted despite Not Mentioned answer: {evidence}")
 
     return nli, evidence
 
