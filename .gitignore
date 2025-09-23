@@ -210,3 +210,7 @@ __marimo__/
 .cache
 demo.py
 output
+debug.txt
+contract_nli
+data
+responses
