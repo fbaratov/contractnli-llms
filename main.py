@@ -2,10 +2,10 @@ import click
 import logging
 logging.basicConfig(level=logging.INFO)
 import os
-from tqdm import tqdm
+from tqdm import tqdm # type: ignore
 import yaml
 logging.info("Base packages loaded.")
-
+import json
 # stuff for prompting
 from prompts import prompts
 from dataset_utils import get_evidence, load_dataset
@@ -22,12 +22,27 @@ def load_config(yaml_path):
         config = yaml.safe_load(f)
     return config
 
-def save_response(response, idx,  output_dir):
+def save_response(config, ex, response, answer, evidence, output_dir):
     os.makedirs(output_dir, exist_ok=True)
-    # with open(f"{output_dir}/response_{idx}.txt", "w") as f:
-    #     f.write(response)
+    output = {
+        "document_id": ex.document_id,
+        "hypothesis_id": ex.hypothesis_id,
+        "response": response,
+        "answer": answer,
+        "nli_label": ex.label,
+        "evidence": evidence,
+        "annotated_spans": get_evidence(ex)
+    }
+    output.update(config)
+    
+    filename = f"response_{output["document_id"]}_{output["hypothesis_id"]}.json"
+    with open(f"{output_dir}/{filename}", "w") as f:
+        json.dump(output, f)
 
-def zero_shot(model, prompt, output_dir):
+    logging.debug("Response ")
+
+
+def zero_shot(config, output_dir):
     # load test dataset
     examples = load_dataset(test_dataset)
     logging.info("Dataset loaded.")
@@ -37,9 +52,9 @@ def zero_shot(model, prompt, output_dir):
         # extract evidence
         # annotated_spans = get_evidence(ex)
         # run inference on it
-        response, _, _ = process_sample(ex, model=model, prompt_template=prompt)
+        response, answer, evidence = process_sample(ex, config)
         # save answer to output/sample_idx
-        save_response(response, i, output_dir)
+        save_response(config, ex, response, answer, evidence, output_dir)
     # <==
 
     logging.info("Inference complete.")
@@ -52,12 +67,9 @@ def zero_shot(model, prompt, output_dir):
 @click.option("--run_label", type=click.Path(exists=False), default="normal_run")
 def main(config_path, output_dir, run_label):
     config = load_config(config_path)
-    model, prompt = config["model"], config["prompt"]
+    model = config["model"]
     run_output_dir = f"{output_dir}/{model}/{run_label}"
-    print(config)
-    print(model, prompt, run_output_dir)
-
-    # zero_shot(model, prompt, run_output_dir)
+    zero_shot(config, run_output_dir)
 
 if __name__=="__main__":
     main()
