@@ -26,9 +26,9 @@ def assemble_prompt(contract, hypothesis, prompt_template="default"):
 
     return prompt
 
-def prompt_model(prompt, model='gemma3'):
+def prompt_model(prompt, model='gemma3', options=None):
     # inference step
-    response = generate(model, prompt)
+    response = generate(model, prompt, options=options)
     return response
 
 def extract_answer(response):
@@ -52,11 +52,18 @@ def extract_answer(response):
 
     return nli, evidence
 
-def process_sample(example, model='gemma3', prompt_template="default"):
+def process_sample(example, config):
+    model = config["model"]
+    prompt_template = config["prompt"]
+    options = config["options"]
+
     contract = example.context_text
     hypothesis = example.hypothesis_text
+
     prompt = assemble_prompt(contract, hypothesis, prompt_template=prompt_template)
-    response = prompt_model(prompt, model=model)
+    
+    response = prompt_model(prompt, model=model, options=options)
+    
     extraction = extract_answer(response)
     answer, evidence = extraction
     return response.response, answer, evidence
