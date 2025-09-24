@@ -1,5 +1,5 @@
 model: gemma3
-prompt: narendra_nli
+prompt: default
 dataset: contractnli
 seed: 1
 options: {
@@ -11,3 +11,4 @@ options: {
     "top_p": 0.95,
     "seed": 42
 }
+binary: false # if true, exclude Not Mentioned from dataset

@@ -69,16 +69,25 @@ def zero_shot(config, output_dir):
 @click.command()
 # @click.argument("model", type=str, default="gemma3")
 # @click.argument("prompt", type=str, default="default")
-@click.option("--config_path", type=click.Path(exists=False))
+@click.option("--model_config", type=click.Path(exists=False))
 @click.option("--output_dir", type=click.Path(), default="responses")
 @click.option("--run_label", type=click.Path(exists=False), default="normal_run")
-def main(config_path, output_dir, run_label):
-    config = load_config(config_path)
-    model, prompt = config["model"], config["prompt"]
+# @click.option("--model", type=str, default=None) #Removed with the logic: model setup is a little more complicated so load that from config
+@click.option("--prompt", type=str, default=None)
+@click.option("--seed", type=int)
+def main(model_config, output_dir, run_label, seed, prompt):
     
+    # set up config 
+    config = load_config(model_config)
+    model = config["model"]
+    config["seed"] = seed
+    config["prompt"] = prompt
+    
+    # output directory status
     run_output_dir = f"{output_dir}/{model}/{prompt}/{run_label}"
     os.makedirs(run_output_dir, exist_ok=True)
     
+    # run inference
     zero_shot(config, run_output_dir)
 
 if __name__=="__main__":

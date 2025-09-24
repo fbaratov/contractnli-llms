@@ -1,4 +1,7 @@
 model: gemma3
+prompt: narendra_nli
+dataset: contractnli
+seed: 1
 options: {
     "stop": [
         "<end_of_turn>"
@@ -8,3 +11,4 @@ options: {
     "top_p": 0.95,
     "seed": 42
 }
+binary: true # 
