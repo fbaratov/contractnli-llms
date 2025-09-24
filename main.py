@@ -1,10 +1,12 @@
 import click
 import logging
-logging.basicConfig(level=logging.INFO)
+
+from contract_nli.dataset.loader import NLILabel
+logging.basicConfig(level=logging.WARNING)
 import os
 from tqdm import tqdm # type: ignore
 import yaml
-logging.info("Base packages loaded.")
+#print("Base packages loaded.\nLoading prompting utils....", end=" ")
 import json
 # stuff for prompting
 from prompts import prompts
@@ -12,7 +14,7 @@ from dataset_utils import get_evidence, load_dataset
 from inference import process_sample
 
 
-logging.info("Prompting utils loaded")
+#print("Prompting utils loaded.")
 
 # global stuff to define
 test_dataset = "data/test.json"
@@ -23,7 +25,7 @@ def load_config(yaml_path):
     return config
 
 def save_response(config, ex, response, answer, evidence, output_dir):
-    os.makedirs(output_dir, exist_ok=True)
+    
     output = {
         "document_id": ex.document_id,
         "hypothesis_id": ex.hypothesis_id,
@@ -45,10 +47,16 @@ def save_response(config, ex, response, answer, evidence, output_dir):
 def zero_shot(config, output_dir):
     # load test dataset
     examples = load_dataset(test_dataset)
-    logging.info("Dataset loaded.")
+    #print("Dataset loaded.")
 
     # for each sample ==>
+    notmentioned_warning_flag = False
     for i, ex in tqdm(enumerate(examples)):
+        if config["binary"] is True and ex.label == NLILabel.NOT_MENTIONED:
+            if not notmentioned_warning_flag:
+                logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
+                notmentioned_warning_flag = True # set to True to not log the warning for only the first sample.
+            continue
         # extract evidence
         # annotated_spans = get_evidence(ex)
         # run inference on it
@@ -57,8 +65,6 @@ def zero_shot(config, output_dir):
         save_response(config, ex, response, answer, evidence, output_dir)
         
     # <==
-
-    logging.info("Inference complete.")
 
 @click.command()
 # @click.argument("model", type=str, default="gemma3")
@@ -69,7 +75,10 @@ def zero_shot(config, output_dir):
 def main(config_path, output_dir, run_label):
     config = load_config(config_path)
     model, prompt = config["model"], config["prompt"]
+    
     run_output_dir = f"{output_dir}/{model}/{prompt}/{run_label}"
+    os.makedirs(run_output_dir, exist_ok=True)
+    
     zero_shot(config, run_output_dir)
 
 if __name__=="__main__":
