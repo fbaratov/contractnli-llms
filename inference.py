@@ -71,4 +71,5 @@ def process_sample(example, config):
     
     extraction = extract_answer(response)
     answer, evidence = extraction
-    return response.response, answer, evidence
+    thinking = response.thinking if hasattr(response, "thinking") else None
+    return response.response, thinking, answer, evidence
