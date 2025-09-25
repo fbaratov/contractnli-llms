@@ -1,0 +1,4 @@
+model: gpt-oss:20b
+options: {
+    "temperature": 1.0
+}
