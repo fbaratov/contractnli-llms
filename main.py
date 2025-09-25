@@ -24,13 +24,14 @@ def load_config(yaml_path):
         config = yaml.safe_load(f)
     return config
 
-def save_response(config, ex, response, answer, evidence, output_dir):
+def save_response(config, ex, response, answer, thinking, evidence, output_dir):
     
     output = {
         "document_id": ex.document_id,
         "hypothesis_id": ex.hypothesis_id,
         "response": response,
         "prediction": answer,
+        "thinking": thinking,
         "nli_label": ex.label.to_anno_name(),
         "prediction_evidence": evidence,
         "annotated_spans": get_evidence(ex)
@@ -49,42 +50,47 @@ def zero_shot(config, output_dir):
     examples = load_dataset(test_dataset)
     #print("Dataset loaded.")
 
+    if config["binary"]:
+        logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
+
     # for each sample ==>
-    notmentioned_warning_flag = False
     for i, ex in tqdm(enumerate(examples)):
-        if config["binary"] is True and ex.label == NLILabel.NOT_MENTIONED:
-            if not notmentioned_warning_flag:
-                logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
-                notmentioned_warning_flag = True # set to True to not log the warning for only the first sample.
+        if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
         # extract evidence
         # annotated_spans = get_evidence(ex)
         # run inference on it
-        response, answer, evidence = process_sample(ex, config)
+        response, thinking, answer, evidence = process_sample(ex, config)
         # save answer to output/sample_idx
-        save_response(config, ex, response, answer, evidence, output_dir)
+        save_response(config, ex, response, answer, thinking, evidence, output_dir)
         
     # <==
 
 @click.command()
 # @click.argument("model", type=str, default="gemma3")
 # @click.argument("prompt", type=str, default="default")
+
 @click.option("--model_config", type=click.Path(exists=False))
 @click.option("--output_dir", type=click.Path(), default="responses")
 @click.option("--run_label", type=click.Path(exists=False), default="normal_run")
 # @click.option("--model", type=str, default=None) #Removed with the logic: model setup is a little more complicated so load that from config
 @click.option("--prompt", type=str, default=None)
 @click.option("--seed", type=int)
-def main(model_config, output_dir, run_label, seed, prompt):
+@click.option("--binary", type=bool, default=False)
+def main(model_config, output_dir, run_label, seed, prompt, binary):
     
     # set up config 
     config = load_config(model_config)
     model = config["model"]
-    config["seed"] = seed
     config["prompt"] = prompt
+    config["binary"] = binary
+    if "options" in config.keys():
+        config["options"]["seed"] = seed
+    else:
+        config["options"] = {"seed": seed}
     
     # output directory status
-    run_output_dir = f"{output_dir}/{model}/{prompt}/{run_label}"
+    run_output_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}"
     os.makedirs(run_output_dir, exist_ok=True)
     
     # run inference
