@@ -1,4 +1,4 @@
 model: llama3.1:8b
 options: {
-    "temperature": 1.0
+    "temperature": 0.
 }

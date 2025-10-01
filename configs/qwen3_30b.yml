@@ -1,4 +1,4 @@
-model: gemma3
+model: qwen3:30b
 options: {
     "temperature": 0.,
 }
