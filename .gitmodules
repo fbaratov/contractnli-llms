@@ -1,0 +1,3 @@
+[submodule "contract-nli-bert"]
+	path = contract-nli-bert
+	url = git@github.com:stanfordnlp/contract-nli-bert.git
