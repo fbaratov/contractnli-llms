@@ -1,8 +1,12 @@
 #!/bin/bash
 
+# activate conda env before running script
+# conda deactivate
+# conda activate ollama
 
 # python main.py --model config #1 --output_dir OPTIONAL --run_label #3 --prompt #4 --seed #5 --binary #6
-PYTHON_CMD="python main.py --prompt narendra_nli --binary True"
+PYTHON_CMD="python main.py --prompt narendra_nli --binary True $@"
+echo $PYTHON_CMD
 
 SEEDS=(0 1 42)
 RUN_LABEL="seed${SEED}"
