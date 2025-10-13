@@ -46,25 +46,32 @@ def update_predictions(response_dir):
             except json.JSONDecodeError:
                 print(f"Error loading {file}")
                 exit()
-            prediction = get_prediction(file_json["response"])
-            file_json["prediction"] = prediction
+            try:
 
-
-            with open(fpath, "w") as f:
-                json.dump(file_json, f)
+                prediction = get_prediction(file_json["response"])
+                file_json["prediction"] = prediction
             
 
-def main():
+                with open(fpath, "w") as f:
+                    json.dump(file_json, f)
+            except KeyError:
+                continue
+            
+
+@click.command()
+@click.option("--main_dir", type=click.Path(exists=True))
+def main(main_dir):
     models = ["deepseek-r1_8b",  "gemma3",  "gemma3_27b",  "gpt-oss_20b",  "llama3.1_8b", "qwen3_30b"]
     prompt = "narendra_nli"
     seeds = [0,1,42]
 
     for model in models:
         for seed in seeds:
-            response_dir = f"responses/temp0/{model}/{prompt}/seed{seed}"
+            response_dir = f"{main_dir}/{model}/{prompt}/seed{seed}"
             print(f"{response_dir}")
             update_predictions(response_dir)
 
 
 if __name__=="__main__":
-    main()
+    raise DeprecationWarning("The function of this script is now covered by inference.py")
+    # main()

@@ -31,29 +31,45 @@ def prompt_model(prompt, model='gemma3', options=None):
     response = generate(model, prompt, options=options)
     return response
 
+
+def remove_between(text: str, start_phrase: str, end_phrase: str) -> str:
+    """
+    Removes everything between (and including) start_phrase and end_phrase
+    from the given text. If the phrases are not found, returns the text unchanged.
+    """
+    pattern = re.escape(start_phrase) + ".*?" + re.escape(end_phrase)
+    return re.sub(pattern, "", text, flags=re.DOTALL)
+
+
+def check_word(word: str, s: str):
+    w_lower = word.lower()
+    s_lower = s.lower()
+    return w_lower in s_lower
+
+def get_prediction(response):
+    # step necessary for qwen, doesn't affect the rest
+    clean_response = remove_between(response, "<think>", "</think>")
+
+    contradiction = check_word("contradiction", clean_response)
+    entailment = check_word("entailment", clean_response)
+
+    if contradiction and entailment:
+        return "InvalidAnswer"
+    elif contradiction:
+        return "Contradiction"
+    elif entailment:
+        return "Entailment"
+    elif not (contradiction or entailment):
+        return "InvalidAnswer"
+
 def extract_answer(response):
-    # postprocessing step. Ignore outputs.
-    
+    # Applies simple steps to find nli/evidence. works if instructions are followed
+
     output = response.response
-    match = re.match(r"^Answer:\s*(.*)", output)
     
-    if match:
-        nli = match.group(1)  # Output: This is the correct response.
-        nli = re.sub(r'[^\w\s]', '', nli)
-    else:
-        nli = None
+    nli = get_prediction(response)
     
     evidence = re.findall("^\*\s*(.*)", output, re.MULTILINE)
-    
-    # if nli not in (['Contradiction', 'Entailment', 'True', 'False', 'Not Mentioned']):
-    #     logging.warning(f"Model has provided invalid answer {nli}")
-
-    # if nli is None:
-    #     logging.warning("Failure to extract answer")
-    # elif nli in ['Contradiction', 'Entailment', 'True', 'False'] and evidence is None:
-    #     logging.warning("Failure to extract evidence despite T/F answer")
-    # elif nli in ['Not Mentioned'] and evidence is not None:
-    #     logging.warning(f"Evidence extracted despite Not Mentioned answer: {evidence}")
 
     return nli, evidence
 
@@ -69,7 +85,6 @@ def process_sample(example, config):
     
     response = prompt_model(prompt, model=model, options=options)
     
-    extraction = extract_answer(response)
-    answer, evidence = extraction
+    answer, evidence = extract_answer(response)
     thinking = response.thinking if hasattr(response, "thinking") else None
     return response.response, thinking, answer, evidence

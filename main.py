@@ -12,7 +12,7 @@ import json
 from prompts import prompts
 from dataset_utils import get_evidence, load_dataset
 from inference import process_sample
-
+from format_json import save_response
 
 #print("Prompting utils loaded.")
 
@@ -24,26 +24,25 @@ def load_config(yaml_path):
         config = yaml.safe_load(f)
     return config
 
-def save_response(config, ex, response, answer, thinking, evidence, output_dir):
+# def save_response(config, ex, response, answer, thinking, evidence, output_dir):
     
-    output = {
-        "document_id": ex.document_id,
-        "hypothesis_id": ex.hypothesis_id,
-        "response": response,
-        "prediction": answer,
-        "thinking": thinking,
-        "nli_label": ex.label.to_anno_name(),
-        "prediction_evidence": evidence,
-        "annotated_spans": get_evidence(ex)
-    }
-    output.update(config)
+#     output = {
+#         "document_id": ex.document_id,
+#         "hypothesis_id": ex.hypothesis_id,
+#         "response": response,
+#         "prediction": answer,
+#         "thinking": thinking,
+#         "nli_label": ex.label.to_anno_name(),
+#         "prediction_evidence": evidence,
+#         "annotated_spans": get_evidence(ex)
+#     }
+#     output.update(config)
     
-    filename = f"response_{output['document_id']}_{output['hypothesis_id']}.json"
-    with open(f"{output_dir}/{filename}", "w") as f:
-        json.dump(output, f)
+#     filename = f"response_{output['document_id']}_{output['hypothesis_id']}.json"
+#     with open(f"{output_dir}/{filename}", "w") as f:
+#         json.dump(output, f)
 
-    logging.debug("Response ")
-
+#     logging.debug("Response ")
 
 def zero_shot(config, output_dir):
     # load test dataset
@@ -61,8 +60,13 @@ def zero_shot(config, output_dir):
         # annotated_spans = get_evidence(ex)
         # run inference on it
         response, thinking, answer, evidence = process_sample(ex, config)
+
         # save answer to output/sample_idx
         save_response(config, ex, response, answer, thinking, evidence, output_dir)
+
+
+        if i == 50:
+            break
         
     # <==
 
@@ -78,7 +82,7 @@ def zero_shot(config, output_dir):
 @click.option("--seed", type=int)
 @click.option("--binary", type=bool, default=False)
 def main(model_config, output_dir, run_label, seed, prompt, binary):
-    
+
     # set up config 
     config = load_config(model_config)
     model = config["model"]

@@ -1,11 +1,13 @@
 import json
 import os
 from tqdm import tqdm
+from evaluation import ExNLILabel, evaluate_all
+import numpy as np
+import click
 
 def load_response_dict(response_dir):
-
+    file_dict = {}
     for _, _, files in os.walk(response_dir):
-        file_dict = {}
         
         for file in tqdm(files, desc="Loading responses"):
             fpath = f"{response_dir}/{file}"
@@ -24,11 +26,15 @@ def evaluate_responses(responses):
 
 
     for k,v in tqdm(responses.items(), desc="Evaluating NLI"):
-        
-        if v["prediction"] is None:
-            none_prediction[k] = v
-            continue
 
+        try:
+            if v["prediction"] is None:
+                none_prediction[k] = v
+                continue
+        except KeyError:
+            print("Skipping file with no prediction key")
+            continue
+        
         prediction = v["prediction"].lower()
         label = v["nli_label"].lower()
         match prediction:
@@ -49,8 +55,8 @@ def evaluate_responses(responses):
 
     return true_e, true_c, false_e, false_c, none_prediction
 
-def save_eval(true_e, true_c, false_e, false_c, none_prediction, save_path):
-    eval = {
+def format_eval_dict(true_e, true_c, false_e, false_c, none_prediction):
+    eval_dict = {
         "true_e": len(true_e),
         "true_c": len(true_c),
         "false_e": len(false_e),
@@ -60,33 +66,67 @@ def save_eval(true_e, true_c, false_e, false_c, none_prediction, save_path):
     total_predictions = len(true_e) + len(true_c) + len(false_e) + len(false_c)
     total = total_predictions + len(none_prediction)
     total = total if total > 0 else 1
-    eval["confusion"] = [
-        eval["true_e"] / total,
-        eval["true_c"] / total,
-        eval["false_e"] / total,
-        eval["false_c"] / total
+    eval_dict["confusion"] = [
+        eval_dict["true_e"] / total,
+        eval_dict["true_c"] / total,
+        eval_dict["false_e"] / total,
+        eval_dict["false_c"] / total
     ]
-    eval["none_percentage"] = len(none_prediction) / total
+    eval_dict["none_percentage"] = len(none_prediction) / total
+    
+    return eval_dict
 
-    with open(save_path, "w") as f:
-        json.dump(eval, f)
+def confusion_eval(main_dir, model, prompt, seed):
+    raise NotImplementedError("Not yet updated to work with update response format")
+    response_dir = f"{main_dir}/{model}/{prompt}/seed{seed}"
+
+    response_dict = load_response_dict(response_dir)
+    true_e, true_c, false_e, false_c, none_prediction = evaluate_responses(response_dict)
+    eval_dict = format_eval_dict(true_e, true_c, false_e, false_c, none_prediction)
 
 
-def main():
-    models = ["deepseek-r1_8b",  "gemma3",  "gemma3_27b",  "gpt-oss_20b",  "llama3.1_8b", "qwen3_30b"]
-    prompt = "narendra_nli"
-    seeds = [0,1,42]
+    with open(f"{main_dir}/{model}/{prompt}/eval/eval_seed{seed}.json", "w") as f:
+        json.dump(eval_dict, f)
 
-    for model in models:
-        for seed in seeds:
-            response_dir = f"responses/temp0/{model}/{prompt}/seed{seed}"
-            print(f"{response_dir}")
-            responses = load_response_dict(response_dir)
-            true_e, true_c, false_e, false_c, none_prediction = evaluate_responses(responses)
-            eval_dir = f"responses/temp0/{model}/{prompt}/eval/"
-            os.makedirs(eval_dir, exist_ok=True)
-            save_path = f"{eval_dir}/seed{seed}_eval.json"
-            save_eval(true_e, true_c, false_e, false_c, none_prediction, save_path)
+def reproducibility_eval(main_dir, model, prompt, seed, dataset):
+    response_dir = f"{main_dir}/{model}/{prompt}/seed{seed}"
+
+    results = []
+    for _, _, files in os.walk(response_dir):
+        for file in tqdm(files, desc="Loading responses"):
+            with open(file, "r") as f:
+                results.append(json.load(f))
+    
+    eval_dict = evaluate_all(
+        dataset,
+        results,
+        ks=[1, 3, 5, 8, 10, 15, 20, 30, 40, 50],
+        task="classification"
+    )
+
+    with open(f"{main_dir}/{model}/{prompt}/eval/repro_eval_seed{seed}.json", "w") as f:
+        json.dump(eval_dict, f)
+
+@click.command()
+@click.option("--output_dir", type=click.Path(), default="responses")
+@click.option("--prompt", type=str, default=None)
+@click.option("--seed", type=int)
+@click.option("--model", type=bool, default=False)
+@click.option("--data", type=click.Path(exists=True), default="data/test.json")
+def main(output_dir, prompt, model, seed, data):
+    with open(data, "r") as f:
+        dataset = json.load(f)
+
+    os.makedirs(f"{output_dir}/{model}/{prompt}/eval", exist_ok=True)
+    
+    response_dir = f"{output_dir}/{model}/{prompt}/seed{seed}"
+    print(f"{response_dir}")
+
+
+    reproducibility_eval(output_dir, model, prompt, seed, dataset)
+    confusion_eval(output_dir, model, prompt, seed)
+            
+
 
 if __name__=="__main__":
     main()
