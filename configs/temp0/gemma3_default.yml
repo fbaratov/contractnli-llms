@@ -1,4 +1,4 @@
 model: gemma3
 options: {
-    "temperature": 0.1,
+    "temperature": 0.,
 }

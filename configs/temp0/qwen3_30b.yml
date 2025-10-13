@@ -1,4 +1,4 @@
 model: qwen3:30b
 options: {
-    "temperature": 0.1,
+    "temperature": 0.,
 }
