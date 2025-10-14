@@ -13,90 +13,113 @@ def load_response_dict(response_dir):
             fpath = f"{response_dir}/{file}"
             with open(fpath, "r") as f:
                 file_json = json.load(f)
-                file_dict[fpath] = file_json
+                file_dict[file_json["id"]] = file_json
 
     return file_dict
 
-def evaluate_responses(responses):
-    false_e = {}
-    false_c = {}
-    true_e = {}
-    true_c = {}
-    none_prediction = {}
+def evaluate_responses(hypo_dict, dataset):
+    per_doc = {}
+
+    organized_dset = {}
+    for d in dataset["documents"]:
+        organized_dset[d["id"]] = d
 
 
-    for k,v in tqdm(responses.items(), desc="Evaluating NLI"):
-
-        try:
-            if v["prediction"] is None:
-                none_prediction[k] = v
-                continue
-        except KeyError:
-            print("Skipping file with no prediction key")
-            continue
+    for id, doc_dict in tqdm(hypo_dict.items(), desc="Evaluating NLI"):
         
-        prediction = v["prediction"].lower()
-        label = v["nli_label"].lower()
-        match prediction:
-            case "entailment":
-                if prediction == label:
-                    true_e[k] = v
-                else:
-                    false_e[k] = v
-            
-            case "contradiction":
-                if prediction == label:
-                    true_c[k] = v
-                else:
-                    false_c[k] = v
-            
-            case _:
-                raise ValueError("Not supposed to get here!")
+        false_e = 0
+        false_c = 0
+        true_e = 0
+        true_c = 0
+        none_prediction = 0
 
-    return true_e, true_c, false_e, false_c, none_prediction
+        hypo_dict = doc_dict["annotation_sets"][0]["annotations"]
+        for hypo_id, response_dict in hypo_dict.items():
+            try:
+                if response_dict["prediction"] is None:
+                    none_prediction += 1
+                    continue
+            except KeyError:
+                print("Skipping file with no prediction key")
+                continue
+        
+            prediction = response_dict["prediction"].lower()
+            
+            label = organized_dset[id]["annotation_sets"][0]["annotations"][hypo_id]["choice"].lower()
+            match prediction:
+                case "entailment":
+                    if prediction == label:
+                        true_e += 1
+                    else:
+                        false_e += 1
+                
+                case "contradiction":
+                    if prediction == label:
+                        true_c += 1
+                    else:
+                        false_c += 1
+                
+                case _:
+                    raise ValueError("Not supposed to get here!")
 
-def format_eval_dict(true_e, true_c, false_e, false_c, none_prediction):
-    eval_dict = {
-        "true_e": len(true_e),
-        "true_c": len(true_c),
-        "false_e": len(false_e),
-        "false_c": len(false_c),
-        "none_prediction": len(none_prediction)
-    }
-    total_predictions = len(true_e) + len(true_c) + len(false_e) + len(false_c)
-    total = total_predictions + len(none_prediction)
-    total = total if total > 0 else 1
-    eval_dict["confusion"] = [
-        eval_dict["true_e"] / total,
-        eval_dict["true_c"] / total,
-        eval_dict["false_e"] / total,
-        eval_dict["false_c"] / total
-    ]
-    eval_dict["none_percentage"] = len(none_prediction) / total
+        per_doc[id] = {
+            "true_e": (true_e),
+            "true_c": (true_c),
+            "false_e": (false_e),
+            "false_c": (false_c),
+            "none_prediction": (none_prediction)
+        }
+
+    return per_doc
+
+def format_eval_dict(per_doc):
+    sum_dict = {k: 0 for k in list(per_doc.values())[0]}
+    for _, v in per_doc.items():
+        for k, count in v.items():
+            sum_dict[k] += count
     
-    return eval_dict
+    valid_predictions = sum_dict["true_e"] + sum_dict["false_e"] + sum_dict["true_c"] + sum_dict["false_c"]
+    total_predictions = valid_predictions + sum_dict["none_prediction"]
 
-def confusion_eval(main_dir, model, prompt, seed):
-    raise NotImplementedError("Not yet updated to work with update response format")
-    response_dir = f"{main_dir}/{model}/{prompt}/seed{seed}"
+    sum_dict["valid"] = valid_predictions
+    sum_dict["total"] = total_predictions
+
+
+    percent_dict = {k: v / total_predictions for k,v in sum_dict.items()}
+    
+    
+    return sum_dict, percent_dict
+
+def confusion_eval(response_dir, eval_dir, dataset, eval_label):
 
     response_dict = load_response_dict(response_dir)
-    true_e, true_c, false_e, false_c, none_prediction = evaluate_responses(response_dict)
-    eval_dict = format_eval_dict(true_e, true_c, false_e, false_c, none_prediction)
+    per_doc = evaluate_responses(response_dict, dataset)
+    sum_dict, percent_dict = format_eval_dict(per_doc)
+
+    per_doc["percent"] = percent_dict
+    per_doc["sum"] = sum_dict
 
 
-    with open(f"{main_dir}/{model}/{prompt}/eval/eval_seed{seed}.json", "w") as f:
-        json.dump(eval_dict, f)
+    with open(f"{eval_dir}/eval_seed{eval_label}.json", "w") as f:
+        json.dump(per_doc, f)
 
-def reproducibility_eval(main_dir, model, prompt, seed, dataset):
-    response_dir = f"{main_dir}/{model}/{prompt}/seed{seed}"
+def reproducibility_eval(response_dir, eval_dir, dataset, eval_label):
+  
+    # fps = []
+    # for filedir, _, files in (os.walk(response_dir)):
+    #     if files is None:
+    #         continue
+    #     for file in files:
+    #         fp = f"{filedir}/{file}"
+    #         fps.append(fp)
 
-    results = []
-    for _, _, files in os.walk(response_dir):
-        for file in tqdm(files, desc="Loading responses"):
-            with open(file, "r") as f:
-                results.append(json.load(f))
-    
+    # results = []
+    # for fp in tqdm(fps, desc="Loading_responses"):
+    #     with open(fp, "r") as f:
+    #         results.append(json.load(f))
+
+    results = list(load_response_dict(response_dir).values())
+
     eval_dict = evaluate_all(
         dataset,
         results,
@@ -104,27 +127,26 @@ def reproducibility_eval(main_dir, model, prompt, seed, dataset):
         task="classification"
     )
 
-    with open(f"{main_dir}/{model}/{prompt}/eval/repro_eval_seed{seed}.json", "w") as f:
+    with open(f"{eval_dir}/repro_eval_seed{eval_label}.json", "w") as f:
         json.dump(eval_dict, f)
 
 @click.command()
-@click.option("--output_dir", type=click.Path(), default="responses")
-@click.option("--prompt", type=str, default=None)
-@click.option("--seed", type=int)
-@click.option("--model", type=bool, default=False)
+@click.option("--response_dir", type=click.Path(exists=True))
+@click.option("--eval_dir", type=click.Path())
 @click.option("--data", type=click.Path(exists=True), default="data/test.json")
-def main(output_dir, prompt, model, seed, data):
+@click.option("--eval_label")
+def main(response_dir, eval_dir, data, eval_label):
     with open(data, "r") as f:
         dataset = json.load(f)
 
-    os.makedirs(f"{output_dir}/{model}/{prompt}/eval", exist_ok=True)
+    os.makedirs(eval_dir, exist_ok=True)
     
-    response_dir = f"{output_dir}/{model}/{prompt}/seed{seed}"
     print(f"{response_dir}")
 
-
-    reproducibility_eval(output_dir, model, prompt, seed, dataset)
-    confusion_eval(output_dir, model, prompt, seed)
+    print("Conducting reproducibility eval")
+    reproducibility_eval(response_dir, eval_dir, dataset, eval_label)
+    print("Conducting confusion eval")
+    confusion_eval(response_dir, eval_dir, dataset, eval_label)
             
 
 
