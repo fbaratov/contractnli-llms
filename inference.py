@@ -9,6 +9,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 import re
 
+# THIS IS JUST FOR THE TEST! DO NOT FORGET TO REMOVE!
+from prompts.output_formats import NLIResponse
+from pydantic import BaseModel
 
 
 def fstr(template: str, **kwargs):
@@ -17,7 +20,7 @@ def fstr(template: str, **kwargs):
     """
     return eval(f'f"""{template}"""', {}, kwargs)
 
-def assemble_prompt(contract, hypothesis, prompt_template="default"):
+def assemble_prompt(contract: str, hypothesis: str, prompt_template: str = "default") -> str:
     # added to avoid warnings
     contract = contract
     hypothesis = hypothesis 
@@ -26,10 +29,17 @@ def assemble_prompt(contract, hypothesis, prompt_template="default"):
 
     return prompt
 
-def prompt_model(prompt, model='gemma3', options=None):
+def prompt_model(prompt: str, model:str ='gemma3', options:dict=None, output_format:BaseModel|None=None) -> tuple[dict|str, str|None]:
     # inference step
-    response = generate(model, prompt, options=options)
-    return response
+    output = generate(model, prompt, options=options, format=output_format.model_json_schema())
+    
+    response = output.response
+    thinking = output.thinking
+    
+    if output_format is not None:
+        response = dict(output_format.model_validate_json(response))
+    
+    return response, thinking
 
 
 def remove_between(text: str, start_phrase: str, end_phrase: str) -> str:
@@ -41,14 +51,14 @@ def remove_between(text: str, start_phrase: str, end_phrase: str) -> str:
     return re.sub(pattern, "", text, flags=re.DOTALL)
 
 
-def check_word(word: str, s: str):
+def check_word(word: str, s: str) -> bool:
     w_lower = word.lower()
     s_lower = s.lower()
     return w_lower in s_lower
 
-def get_prediction(response):
-    # step necessary for qwen, doesn't affect the rest
-    clean_response = remove_between(response, "<think>", "</think>")
+def get_prediction(nli_response: str) -> str:
+
+    clean_response = remove_between(nli_response, "<think>", "</think>")
 
     contradiction = check_word("contradiction", clean_response)
     entailment = check_word("entailment", clean_response)
@@ -62,14 +72,21 @@ def get_prediction(response):
     elif not (contradiction or entailment):
         return "InvalidAnswer"
 
-def extract_answer(response):
+def get_evidence(evidence_response: str) -> list[str]:
+    return re.findall("^\*\s*(.*)", evidence_response, re.MULTILINE)
+
+def extract_answer(response: dict|str) -> tuple[str, list[str]]:
     # Applies simple steps to find nli/evidence. works if instructions are followed
 
-    output = response.response
+    if type(response) is dict:
+        nli_response = response["classification"] if "classification" in response.keys() else ""
+        evidence_response = response["evidence"] if "evidence" in response.keys() else ""
+    else:
+        nli_response, evidence_response = response, response
     
-    nli = get_prediction(response)
+    nli = get_prediction(nli_response)
     
-    evidence = re.findall("^\*\s*(.*)", output, re.MULTILINE)
+    evidence = get_evidence(evidence_response)
 
     return nli, evidence
 
@@ -77,14 +94,15 @@ def process_sample(example, config):
     model = config["model"]
     prompt_template = config["prompt"]
     options = config["options"]
+    output_format = NLIResponse
 
     contract = example.context_text
     hypothesis = example.hypothesis_text
 
     prompt = assemble_prompt(contract, hypothesis, prompt_template=prompt_template)
     
-    response = prompt_model(prompt, model=model, options=options)
+    response, thinking = prompt_model(prompt, model=model, options=options, output_format=output_format)
     
     answer, evidence = extract_answer(response)
-    thinking = response.thinking if hasattr(response, "thinking") else None
-    return response.response, thinking, answer, evidence
+
+    return response, thinking, answer, evidence
