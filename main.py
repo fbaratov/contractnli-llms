@@ -10,10 +10,11 @@ import yaml
 import json
 # stuff for prompting
 from prompts import prompts
+from prompts.output_formats import NLIResponse, EvidenceResponse, JointResponse
 from dataset_utils import get_evidence, load_dataset
 from inference import process_sample
 from format_json import save_response
-
+from pydantic import BaseModel
 #print("Prompting utils loaded.")
 
 # global stuff to define
@@ -53,7 +54,7 @@ def zero_shot(config, output_dir):
         logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
 
     # for each sample ==>
-    for i, ex in tqdm(enumerate(examples)):
+    for ex in tqdm(examples):
         if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
         # extract evidence
@@ -63,10 +64,6 @@ def zero_shot(config, output_dir):
 
         # save answer to output/sample_idx
         save_response(config, ex, response, answer, thinking, evidence, output_dir)
-
-
-        if i == 50:
-            break
         
     # <==
 
@@ -76,11 +73,12 @@ def zero_shot(config, output_dir):
 
 @click.option("--model_config", type=click.Path(exists=False))
 @click.option("--output_dir", type=click.Path(), default="responses")
-@click.option("--run_label", type=click.Path(exists=False), default="normal_run")
+@click.option("--run_label", type=click.Path(exists=False), default="")
 # @click.option("--model", type=str, default=None) #Removed with the logic: model setup is a little more complicated so load that from config
 @click.option("--prompt", type=str, default=None)
 @click.option("--seed", type=int)
 @click.option("--binary", type=bool, default=False)
+# @click.option("--response_format", type=str, default="")
 def main(model_config, output_dir, run_label, seed, prompt, binary):
 
     # set up config 
@@ -93,8 +91,8 @@ def main(model_config, output_dir, run_label, seed, prompt, binary):
     else:
         config["options"] = {"seed": seed}
     
-    # output directory status
-    run_output_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}"
+    # output directory
+    run_output_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/seed{seed}"
     os.makedirs(run_output_dir, exist_ok=True)
     
     # run inference
