@@ -1,7 +1,7 @@
 import json
 import os
 from tqdm import tqdm
-from evaluation import ExNLILabel
+from nli_labels import ExNLILabel
 import numpy as np
 import click
 
