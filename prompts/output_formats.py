@@ -1,7 +1,12 @@
 from pydantic import BaseModel
+from typing import Literal
+
+class BinaryNLIResponse(BaseModel):
+    classification: Literal["Contradiction", "Entailment"]
+    thinking: str
 
 class NLIResponse(BaseModel):
-    classification: str
+    classification: Literal["Contradiction", "Entailment", "NotMentioned"]
     thinking: str
 
 class EvidenceResponse(BaseModel):
