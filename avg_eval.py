@@ -9,10 +9,21 @@ def aggregate_metrics(results: List[dict]) -> dict:
         if isinstance(val, dict):
             ret[key] = aggregate_metrics([result[key] for result in results])
         else:
-            ret[key] = {
-                'average': np.average([result[key] for result in results]),
-                'std': np.std([result[key] for result in results])
-            }
+            try:
+                ### this one is to prevent None breaking things (why is it even there?)
+                for result in results:
+                    if result[key] is None:
+                        result[key] = np.nan
+                ###
+                ret[key] = {
+                    'average': np.average([result[key] for result in results]),
+                    'std': np.std([result[key] for result in results])
+                }
+            except TypeError as e:
+                print(e)
+                print([result[key] for result in results])
+                print(results)
+                exit()
     return ret
 
 
@@ -31,25 +42,18 @@ def run(metrics_set, save_fp):
 
 
 @click.command()
-@click.option("--main_dir", type=click.Path(exists=True))
-def main(main_dir):
-    models = ["deepseek-r1_8b",  "gemma3",  "gemma3_27b",  "gpt-oss_20b",  "llama3.1_8b", "qwen3_30b"]
-    prompt = "narendra_nli"
-    seeds = [0,1,42]
-    
-    for model in models:
-        metrics_set = []
+@click.option("-m", type=list, default=None, multiple=True)
+@click.option("-o", type=click.Path(exists=False), default=None)
+def main(m, o):
+    out_file = o
+    metrics_set = []
 
-        for seed in seeds:
-            response_dir = f"responses/temp0/{model}/{prompt}/seed{seed}"
-            print(f"{response_dir}")
-            
-            with open(f"responses/temp0/{model}/{prompt}/eval/format_eval_seed{seed}.json", "r") as f:
-                e = json.load(f)
-                metrics_set.append(e)
+    for fp in m:
+        with open(fp, "r") as f:
+            e = json.load(f)
+            metrics_set.append(e)
 
-        aggregate_file = f"responses/temp0/{model}/{prompt}/eval/aggregated_metrics.json"
-        run(metrics_set, aggregate_file)
+            run(metrics_set, out_file)
         
         
 
