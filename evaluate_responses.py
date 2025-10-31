@@ -27,10 +27,10 @@ def evaluate_responses(hypo_dict, dataset):
 
     for id, doc_dict in tqdm(hypo_dict.items(), desc="Evaluating NLI"):
         
-        false_e = 0
-        false_c = 0
         true_e = 0
         true_c = 0
+        false_e = 0
+        false_c = 0
         none_prediction = 0
 
         hypo_dict = doc_dict["annotation_sets"][0]["annotations"]
@@ -60,14 +60,17 @@ def evaluate_responses(hypo_dict, dataset):
                         false_c += 1
                 
                 case _:
-                    raise ValueError("Not supposed to get here!")
+                    none_prediction += 1
+
 
         per_doc[id] = {
-            "true_e": (true_e),
-            "true_c": (true_c),
-            "false_e": (false_e),
-            "false_c": (false_c),
-            "none_prediction": (none_prediction)
+            "true_e": true_e,
+            "false_e": false_e,
+            "false_c": false_c,
+            "true_c": true_c,
+            "none_prediction": none_prediction,
+            "true_prediction": true_e + true_c,
+            "false_prediction": false_c + false_e
         }
 
     return per_doc
@@ -78,29 +81,18 @@ def format_eval_dict(per_doc):
         for k, count in v.items():
             sum_dict[k] += count
     
-    valid_predictions = sum_dict["true_e"] + sum_dict["false_e"] + sum_dict["true_c"] + sum_dict["false_c"]
-    total_predictions = valid_predictions + sum_dict["none_prediction"]
-
-    sum_dict["valid"] = valid_predictions
-    sum_dict["total"] = total_predictions
-
-
-    percent_dict = {k: v / total_predictions for k,v in sum_dict.items()}
     
-    
-    return sum_dict, percent_dict
+    return sum_dict
 
 def confusion_eval(response_dir, eval_dir, dataset, eval_label):
 
     response_dict = load_response_dict(response_dir)
     per_doc = evaluate_responses(response_dict, dataset)
-    sum_dict, percent_dict = format_eval_dict(per_doc)
+    sum_dict = format_eval_dict(per_doc)
 
-    per_doc["percent"] = percent_dict
     per_doc["sum"] = sum_dict
 
-
-    with open(f"{eval_dir}/eval_seed{eval_label}.json", "w") as f:
+    with open(f"{eval_dir}/confusion_eval_{eval_label}.json", "w") as f:
         json.dump(per_doc, f)
 
 def reproducibility_eval(response_dir, eval_dir, dataset, eval_label):
@@ -127,7 +119,7 @@ def reproducibility_eval(response_dir, eval_dir, dataset, eval_label):
         task="classification"
     )
 
-    with open(f"{eval_dir}/repro_eval_seed{eval_label}.json", "w") as f:
+    with open(f"{eval_dir}/repro_eval_{eval_label}.json", "w") as f:
         json.dump(eval_dict, f)
 
 @click.command()
