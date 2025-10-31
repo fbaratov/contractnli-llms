@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 import re
 
 # THIS IS JUST FOR THE TEST! DO NOT FORGET TO REMOVE!
-from prompts.output_formats import NLIResponse
+from prompts.output_formats import BinaryNLIResponse
 from pydantic import BaseModel
 
 
@@ -37,8 +37,11 @@ def prompt_model(prompt: str, model:str ='gemma3', options:dict=None, output_for
     thinking = output.thinking
     
     if output_format is not None:
-        response = dict(output_format.model_validate_json(response))
-    
+        try: # structure successfully followed
+            response = dict(output_format.model_validate_json(response))
+        except Exception as e: # structure not followed successfully, let it through and attempt to salvage from string
+            print(e)
+
     return response, thinking
 
 
@@ -94,7 +97,7 @@ def process_sample(example, config):
     model = config["model"]
     prompt_template = config["prompt"]
     options = config["options"]
-    output_format = NLIResponse
+    output_format = BinaryNLIResponse
 
     contract = example.context_text
     hypothesis = example.hypothesis_text
