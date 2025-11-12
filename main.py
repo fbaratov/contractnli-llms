@@ -78,14 +78,15 @@ def zero_shot(config, output_dir):
 @click.option("--prompt", type=str, default=None)
 @click.option("--seed", type=int)
 @click.option("--binary", type=bool, default=False)
-# @click.option("--response_format", type=str, default="")
-def main(model_config, output_dir, run_label, seed, prompt, binary):
+@click.option("--output_format", default=None)
+def main(model_config, output_dir, run_label, seed, prompt, binary, output_format):
 
     # set up config 
     config = load_config(model_config)
     model = config["model"]
     config["prompt"] = prompt
     config["binary"] = binary
+    config["output_format"] = output_format
     if "options" in config.keys():
         config["options"]["seed"] = seed
     else:
