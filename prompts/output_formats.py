@@ -5,6 +5,10 @@ class BinaryNLIResponse(BaseModel):
     classification: Literal["Contradiction", "Entailment"]
     thinking: str
 
+class BinaryNLIReversed(BaseModel):
+    explanation: str
+    classification: Literal["Contradiction", "Entailment"]
+
 class NLIResponse(BaseModel):
     classification: Literal["Contradiction", "Entailment", "NotMentioned"]
     thinking: str
