@@ -1,0 +1,4 @@
+model: mistral:7b
+options: {
+    "temperature": 1,
+}
