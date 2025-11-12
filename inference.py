@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 import re
 
 # THIS IS JUST FOR THE TEST! DO NOT FORGET TO REMOVE!
-from prompts.output_formats import BinaryNLIResponse
+from prompts.output_formats import BinaryNLIReversed
 from pydantic import BaseModel
 
 
@@ -31,7 +31,13 @@ def assemble_prompt(contract: str, hypothesis: str, prompt_template: str = "defa
 
 def prompt_model(prompt: str, model:str ='gemma3', options:dict=None, output_format:BaseModel|None=None) -> tuple[dict|str, str|None]:
     # inference step
-    output = generate(model, prompt, options=options, format=output_format.model_json_schema())
+    if output_format is not None:
+        output_format = eval(output_format)
+
+    output = generate(model, 
+                      prompt,
+                      options=options,
+                      format = output_format.model_json_schema() if output_format is not None else None)
     
     response = output.response
     thinking = output.thinking
@@ -97,7 +103,7 @@ def process_sample(example, config):
     model = config["model"]
     prompt_template = config["prompt"]
     options = config["options"]
-    output_format = BinaryNLIResponse
+    output_format = config["output_format"]
 
     contract = example.context_text
     hypothesis = example.hypothesis_text
