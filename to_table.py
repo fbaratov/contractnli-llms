@@ -1,36 +1,30 @@
 import click
 import json
 
-# \begin{table}[h]
-#     \centering
-#     \begin{tabular}{c||c|ccc}
-#           & & & Results & \\
-         
-#          Model & & Entailment & Contradiction & Invalid \\
-#          \hline
-#          \hline
-#          DeepSeek-R1 8B & E & 1 & 0 & \\
-#                         & C & 0 & 0 & 1187 \\
-#          \hline
-#          Gemma3 4B & E & 764 & 91 & \\
-#                    & C & 130  & 115 & 88 \\
-#          \hline
-#          Gemma3 27B & E & 898 & 54 &  \\
-#                     & C & 64  & 166 & 6 \\
-#          \hline
-#          GPT-OSS 20B & E & 810 & 39 & \\
-#                      & C & 157 & 181 & 1 \\
-#          \hline
-#          LLaMA3.1 8B & E & 515 & 95  & \\
-#                      & C & 158 & 67 & 353 \\
-#          \hline
-#          Qwen3 30B   & E & 820 & 39   & \\
-#                      & C & 52  & 172  & 105 \\
-#     \end{tabular}
-#     \caption{Confusion matrices on test set with Seed 0 and temperature 0}
-#     \label{tab:seed0temp0confusion}
-# \end{table}
+path_to_model = {
+    "llama3.2_3b/": "LLaMA3.2 3B",
+    "gemma3/": "Gemma3 4B",
+    "mistral_7b/": "Mistral 7B",
+    "llama3.1_8b/": "LLaMA3.1 8B",
+    "gpt-oss_20b/": "GPT-OSS 20B",
+    "gemma3_27b/": "Gemma3 27B",
+    "qwen3_30b/": "Qwen3 30B",
+}
 
+def to_model(fp: str) -> str:
+    for k,v in path_to_model.items():
+        if k in fp:
+            return v
+
+def rearrange(f, rows):
+    rearranged_rows, models = [],[]
+    for k,v in path_to_model.items():
+        for fp, row in zip(f, rows):
+            if k in fp:
+                models.append(v)
+                rearranged_rows.append(row)
+    
+    return models, rearranged_rows
 
 confusion = {
     "start" : """
@@ -102,13 +96,16 @@ def to_table(models, rows, template):
 def main(f, template, o):
     rows = []
     table = None
+    models = []
+
 
     for fp in f:
         with open(fp, "r") as row_file:
             row = json.load(row_file)
             rows.append(row)
     print(f"Files opened")
-    table = to_table(f, rows, eval(template))
+    models, rows = rearrange(f, rows)
+    table = to_table(models, rows, eval(template))
     print("Table converted")
     with open(o, "w") as out_file:
         out_file.write(table)
