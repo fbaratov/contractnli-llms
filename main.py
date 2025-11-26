@@ -1,3 +1,4 @@
+import pickle
 import click
 import logging
 
@@ -15,15 +16,10 @@ from dataset_utils import get_evidence, load_dataset
 from inference import process_sample
 from format_json import save_response
 from pydantic import BaseModel
+from utils import test_dataset, load_config
 #print("Prompting utils loaded.")
 
-# global stuff to define
-test_dataset = "data/test.json"
 
-def load_config(yaml_path):
-    with open(yaml_path, "r") as f:
-        config = yaml.safe_load(f)
-    return config
 
 # def save_response(config, ex, response, answer, thinking, evidence, output_dir):
     
@@ -60,10 +56,14 @@ def zero_shot(config, output_dir):
         # extract evidence
         # annotated_spans = get_evidence(ex)
         # run inference on it
-        response, thinking, answer, evidence = process_sample(ex, config)
+        response, thinking, answer, evidence, logits = process_sample(ex, config)
 
         # save answer to output/sample_idx
         save_response(config, ex, response, answer, thinking, evidence, output_dir)
+
+        if logits:
+            with open(f"logits/{output_dir}/{ex.document_id}_{ex.hypothesis_id}.json", "w") as f:
+                pickle.dump(logits, f)
         
     # <==
 

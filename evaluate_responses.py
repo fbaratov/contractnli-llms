@@ -4,18 +4,7 @@ from tqdm import tqdm
 from evaluation import ExNLILabel, evaluate_all
 import numpy as np
 import click
-
-def load_response_dict(response_dir):
-    file_dict = {}
-    for _, _, files in os.walk(response_dir):
-        
-        for file in tqdm(files, desc="Loading responses"):
-            fpath = f"{response_dir}/{file}"
-            with open(fpath, "r") as f:
-                file_json = json.load(f)
-                file_dict[file_json["id"]] = file_json
-
-    return file_dict
+from utils import load_response_dict
 
 def evaluate_responses(hypo_dict, dataset):
     per_doc = {}
