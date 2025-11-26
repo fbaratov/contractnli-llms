@@ -12,11 +12,11 @@ import json
 # stuff for prompting
 from prompts import prompts
 from prompts.output_formats import NLIResponse, EvidenceResponse, JointResponse
-from dataset_utils import get_evidence, load_dataset
+from backend.dataset_utils import get_evidence, load_dataset
 from inference import process_sample
-from format_json import save_response
+from backend.format_json import save_response
 from pydantic import BaseModel
-from utils import test_dataset, load_config
+from backend.utils import test_dataset, load_config
 #print("Prompting utils loaded.")
 
 

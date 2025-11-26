@@ -100,6 +100,7 @@ def extract_answer(response: dict|str) -> tuple[str, list[str]]:
     return nli, evidence
 
 def process_sample(example, config):
+    logits = None
     model = config["model"]
     prompt_template = config["prompt"]
     options = config["options"]
@@ -110,8 +111,12 @@ def process_sample(example, config):
 
     prompt = assemble_prompt(contract, hypothesis, prompt_template=prompt_template)
     
-    response, thinking = prompt_model(prompt, model=model, options=options, output_format=output_format)
-    
+    if config["backend"] == "ollama":
+        response, thinking = prompt_model(prompt, model=model, options=options, output_format=output_format)
+    elif config["backend"] == "hf":
+        response, logits = ...
+        logits 
+
     answer, evidence = extract_answer(response)
 
-    return response, thinking, answer, evidence
+    return response, thinking, answer, evidence, logits

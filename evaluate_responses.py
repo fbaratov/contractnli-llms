@@ -1,10 +1,10 @@
 import json
 import os
 from tqdm import tqdm
-from evaluation import ExNLILabel, evaluate_all
+from backend.evaluation import ExNLILabel, evaluate_all
 import numpy as np
 import click
-from utils import load_response_dict
+from backend.utils import load_response_dict
 
 def evaluate_responses(hypo_dict, dataset):
     per_doc = {}

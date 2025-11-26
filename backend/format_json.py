@@ -1,16 +1,18 @@
 import json
 import os
 from tqdm import tqdm
-from nli_labels import ExNLILabel
+from backend.nli_labels import ExNLILabel
 import numpy as np
 import click
 
-def encode_vector(prediction):
+
+def encode_onehot_vector(prediction):
     encoding = np.zeros(len(ExNLILabel))
     encoding[ExNLILabel.from_str(prediction).value] = 1.
     return list(encoding)
 
 def encode_dict(choice):
+    # takes a choice vector and represents it as a dictionary i guess.
     pred_dict = {
         ExNLILabel(i).to_anno_name(): float(p)
         for i, p in enumerate(choice)
@@ -21,15 +23,15 @@ def encode_spans(evidence):
     #! not yet implemented! TODO: implement :)
     return evidence
 
-def format_annotation(response, prediction, thinking, evidence):
-    choice = encode_vector(prediction)
+def format_annotation(response, prediction: str|dict[str, str], thinking, evidence = None, class_probs: str|None = None, choice: str|None = None):
+    choice = encode_onehot_vector(prediction if choice is None else choice)
     spans = encode_spans(evidence)
     annotation = {
         "response": response,
         "thinking": thinking,
         "prediction": prediction,
         "choice": choice,
-        "class_probs": encode_dict(choice),
+        "class_probs": encode_dict(choice) if class_probs is None else class_probs,
         "spans": None
     }
     return annotation
