@@ -10,10 +10,12 @@ from backend.utils import load_json
 
 def predictions_to_probs(predictions: dict[str, str]) -> dict[float]:
     ranked_preds = dict(Counter(predictions.values()))
-    
+    # do not consider invalid answers for calculating probability
+    ranked_preds[ExNLILabel.INVALID_ANSWER.to_anno_name()] = 0
 
+    total_valid_answers = sum(ranked_preds.values()) 
     for k,v in ranked_preds.items():
-        ranked_preds[k] = v / len(predictions)
+        ranked_preds[k] = (v / total_valid_answers) if total_valid_answers > 0 else 0.
 
     # add missing labels
     for label in ExNLILabel:
@@ -100,21 +102,26 @@ def group_by_document(response_paths: list[str]) -> dict:
                 print(f"Path {fp} does not exist! What?")
 
             response = load_json(fp)
-            document[response["model"]] = response
+            identifier = fp
+            document[identifier] = response
         documents[filename] = document
 
     return documents        
 
 
 @click.command()
-@click.option("--out_dir", type=click.Path(exists=False))
+@click.option("--out_dir", type=click.Path(exists=False), default=None)
 @click.option("--path_file", type=click.Path(exists=True))
 def main(out_dir, path_file):
     """
     Loads JSON files from given paths and aggregates them sample-wise across multiple models, per seed.
     """
+    # if out_dir not specified, put samples in the same dir as path_file
+    if out_dir is None:
+        path_file_dir = os.path.dirname(path_file)
+        out_dir = f"{path_file_dir}/out"
+
     # create out_dir
-    out_dir = f"{out_dir}/ensemble"
     os.makedirs(out_dir, exist_ok=True)
 
     # load paths from file
@@ -134,7 +141,9 @@ def main(out_dir, path_file):
             "id": first_doc["id"],
             "binary": first_doc["binary"],
             "annotation_sets": [
-                annotations
+                {
+                    "annotations": annotations
+                }
             ]
         }
 
