@@ -84,19 +84,6 @@ def confusion_eval(response_dir, eval_dir, dataset, eval_label):
         json.dump(per_doc, f)
 
 def reproducibility_eval(response_dir, eval_dir, dataset, eval_label):
-  
-    # fps = []
-    # for filedir, _, files in (os.walk(response_dir)):
-    #     if files is None:
-    #         continue
-    #     for file in files:
-    #         fp = f"{filedir}/{file}"
-    #         fps.append(fp)
-
-    # results = []
-    # for fp in tqdm(fps, desc="Loading_responses"):
-    #     with open(fp, "r") as f:
-    #         results.append(json.load(f))
 
     results = list(load_response_dict(response_dir).values())
 
