@@ -1,6 +1,7 @@
 import json
 import os
 from tqdm import tqdm
+from backend.dataset_utils import organize_dataset
 from backend.evaluation import ExNLILabel, evaluate_all
 import numpy as np
 import click
@@ -9,9 +10,7 @@ from backend.utils import load_response_dict
 def evaluate_responses(hypo_dict, dataset):
     per_doc = {}
 
-    organized_dset = {}
-    for d in dataset["documents"]:
-        organized_dset[d["id"]] = d
+    organized_dset = organize_dataset(dataset)
 
 
     for id, doc_dict in tqdm(hypo_dict.items(), desc="Evaluating NLI"):
