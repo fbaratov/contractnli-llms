@@ -1,4 +1,4 @@
-from contract_nli.dataset.loader import ContractNLIExample
+from .contract_nli_bert.contract_nli.dataset.loader import ContractNLIExample
 import json
 
 def get_evidence(example: ContractNLIExample):
@@ -13,6 +13,16 @@ def load_dataset(dset_path: str):
         input_dict = json.load(fin)
     examples = ContractNLIExample.load(input_dict)
     return examples
+
+def retrieve_annotation(dataset: dict, document: int, hypothesis: str) -> dict:
+    return dataset[document]["annotation_sets"][0]["annotations"][hypothesis]
+
+def organize_dataset(list_dataset):
+    dict_dataset = {}
+    for d in list_dataset["documents"]:
+        dict_dataset[d["id"]] = d
+
+    return dict_dataset
 
 
 if __name__=="__main__":

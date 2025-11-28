@@ -1,6 +1,6 @@
 import yaml
 import json
-import tqdm
+from tqdm import tqdm
 import os
 
 # global stuff to define
