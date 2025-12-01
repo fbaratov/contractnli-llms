@@ -1,0 +1,5 @@
+model: qwen3:30b
+prompt: NLIReversed
+options: {
+    "temperature": 0.1
+}

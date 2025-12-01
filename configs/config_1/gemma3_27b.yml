@@ -1,0 +1,5 @@
+model: gemma3:27b
+prompt: NLIReversed
+options: {
+    "temperature": 0.1,
+}

@@ -1,0 +1,5 @@
+model: gpt-oss:20b
+prompt: None
+options: {
+    "temperature": 1.,
+}
