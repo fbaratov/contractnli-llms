@@ -4,6 +4,7 @@ from tqdm import tqdm
 from .nli_labels import ExNLILabel
 import numpy as np
 import click
+import logging
 
 
 def encode_onehot_vector(prediction):
@@ -23,12 +24,13 @@ def encode_spans(evidence):
     #! not yet implemented! TODO: implement :)
     return evidence
 
-def format_annotation(response, prediction: str|dict[str, str], thinking, evidence = None, class_probs: str|None = None, choice: str|None = None):
+def format_annotation(response, prediction: str|dict[str, str], thinking, evidence = None, class_probs: str|None = None, choice: str|None = None, logprobs = None):
     choice = encode_onehot_vector(prediction if choice is None else choice)
     spans = encode_spans(evidence)
     annotation = {
         "response": response,
         "thinking": thinking,
+        "logprobs": logprobs,
         "prediction": prediction,
         "choice": choice,
         "class_probs": encode_dict(choice) if class_probs is None else class_probs,
@@ -53,7 +55,7 @@ def reformat_response(response):
     }
     return reformatted_response
 
-def save_response(config, ex, response, answer, thinking, evidence, output_dir):
+def save_response(config, ex, answer, evidence, output, output_dir):
     out_path = f"{output_dir}/{ex.document_id}.json"
     if os.path.exists(out_path):
         with open(out_path, "r") as f:
@@ -72,41 +74,17 @@ def save_response(config, ex, response, answer, thinking, evidence, output_dir):
         }
 
     response_dict["annotation_sets"][0]["annotations"][ex.hypothesis_id] = format_annotation(
-        response=response,
         prediction=answer,
-        thinking=thinking,
-        evidence=evidence
+        evidence=evidence,
+        response=output.answer,
+        thinking=output.thinking,
+        logprobs=output.logprobs,
+        
         )
 
     with open(out_path, "w") as f:
         json.dump(response_dict, f)
-
-
-def format_for_evaluation(response_dir):
-    raise DeprecationWarning("Running this script is directly no longer necessary, functionality implemented in main.py")
-
-    formatted_dict = {}
-    for _, _, files in os.walk(response_dir):
         
-        for file in tqdm(files, desc="Loading responses"):
-            if file == "format.json":
-                continue
-            fpath = f"{response_dir}/{file}"
-            with open(fpath, "r") as f:
-                response = json.load(f)
-                try:
-                    document_id = response["document_id"]
-                    if document_id not in formatted_dict.keys():
-                        formatted_dict[document_id] = reformat_response(response)
-                    else:
-                        hypothesis_id = response["hypothesis_id"]
-                        formatted_dict[document_id]["annotation_sets"][0]["annotations"][hypothesis_id] = format_annotation(response)
-                except KeyError:
-                    print(fpath)
-                    print(response)
-                    exit()
-    return formatted_dict
-
 
 @click.command()
 @click.option("--main_dir", type=click.Path(exists=True))
@@ -120,11 +98,5 @@ def main(main_dir):
             response_dir = f"{main_dir}/{model}/{prompt}/seed{seed}"
             print(f"{response_dir}")
             
-
-            formatted_dict = format_for_evaluation(response_dir)
-
-            with open(f"{response_dir}/format.json", "w") as f:
-                json.dump(formatted_dict, f)
-
 if __name__=="__main__":
     main()

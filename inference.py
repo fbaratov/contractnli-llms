@@ -6,7 +6,7 @@ from prompts import prompts
 
 # other stuff
 import logging
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 import re
 
 # THIS IS JUST FOR THE TEST! DO NOT FORGET TO REMOVE!
@@ -29,26 +29,26 @@ def assemble_prompt(contract: str, hypothesis: str, prompt_template: str = "defa
 
     return prompt
 
-def prompt_model(prompt: str, model:str ='gemma3', options:dict=None, output_format:BaseModel|None=None) -> tuple[dict|str, str|None]:
+def prompt_model(prompt: str, model:str ='gemma3', options:dict=None, structure:BaseModel|None=None) -> tuple[dict|str, str|None]:
     # inference step
-    if output_format is not None:
-        output_format = eval(output_format)
+    if structure is not None:
+        structure = eval(structure)
 
     output = generate(model, 
                       prompt,
                       options=options,
-                      format = output_format.model_json_schema() if output_format is not None else None)
+                      format = structure.model_json_schema() if structure is not None else None)
     
     response = output.response
-    thinking = output.thinking
+    # thinking = output.thinking
     
-    if output_format is not None:
+    if structure is not None:
         try: # structure successfully followed
-            response = dict(output_format.model_validate_json(response))
+            response = dict(structure.model_validate_json(response))
         except Exception as e: # structure not followed successfully, let it through and attempt to salvage from string
-            print(e)
+            logging.warning(f"Structure not followed successfully! \n {e}")
 
-    return response, thinking
+    return output
 
 
 def remove_between(text: str, start_phrase: str, end_phrase: str) -> str:
@@ -104,7 +104,7 @@ def process_sample(example, config):
     model = config["model"]
     prompt_template = config["prompt"]
     options = config["options"]
-    output_format = config["output_format"]
+    structure = config["structure"]
 
     contract = example.context_text
     hypothesis = example.hypothesis_text
@@ -112,11 +112,12 @@ def process_sample(example, config):
     prompt = assemble_prompt(contract, hypothesis, prompt_template=prompt_template)
     
     if config["backend"] == "ollama":
-        response, thinking = prompt_model(prompt, model=model, options=options, output_format=output_format)
+        output = prompt_model(prompt, model=model, options=options, structure=structure)
     elif config["backend"] == "hf":
+        raise NotImplementedError()
         response, logits = ...
         logits 
 
-    answer, evidence = extract_answer(response)
+    answer, evidence = extract_answer(output.response)
 
-    return response, thinking, answer, evidence, logits
+    return answer, evidence, output
