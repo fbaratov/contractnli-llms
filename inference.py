@@ -9,9 +9,7 @@ import logging
 # logging.basicConfig(level=logging.INFO)
 import re
 
-# THIS IS JUST FOR THE TEST! DO NOT FORGET TO REMOVE!
-from prompts.output_formats import BinaryNLIReversed
-from pydantic import BaseModel
+from prompts.output_formats import *
 
 
 def fstr(template: str, **kwargs):
@@ -29,7 +27,13 @@ def assemble_prompt(contract: str, hypothesis: str, prompt_template: str = "defa
 
     return prompt
 
-def prompt_model(prompt: str, model:str ='gemma3', options:dict=None, structure:BaseModel|None=None) -> tuple[dict|str, str|None]:
+def prompt_model(prompt: str, config) -> tuple[dict|str, str|None]:
+    # get values from config
+    model = config["model"]
+    options = config["options"]
+    structure = config["structure"]
+    top_logprobs = config["n_logprobs"]
+
     # inference step
     if structure is not None:
         structure = eval(structure)
@@ -37,6 +41,8 @@ def prompt_model(prompt: str, model:str ='gemma3', options:dict=None, structure:
     output = generate(model, 
                       prompt,
                       options=options,
+                      logprobs=True,
+                      top_logprobs=top_logprobs,
                       format = structure.model_json_schema() if structure is not None else None)
     
     response = output.response
@@ -100,24 +106,17 @@ def extract_answer(response: dict|str) -> tuple[str, list[str]]:
     return nli, evidence
 
 def process_sample(example, config):
-    logits = None
-    model = config["model"]
-    prompt_template = config["prompt"]
-    options = config["options"]
-    structure = config["structure"]
-
     contract = example.context_text
     hypothesis = example.hypothesis_text
 
+    prompt_template = config["prompt"]
     prompt = assemble_prompt(contract, hypothesis, prompt_template=prompt_template)
     
     if config["backend"] == "ollama":
-        output = prompt_model(prompt, model=model, options=options, structure=structure)
+        output = prompt_model(prompt, config)
     elif config["backend"] == "hf":
         raise NotImplementedError()
-        response, logits = ...
-        logits 
-
+    
     answer, evidence = extract_answer(output.response)
 
     return answer, evidence, output

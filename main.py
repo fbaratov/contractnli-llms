@@ -3,7 +3,7 @@ import click
 import logging
 
 from contract_nli.dataset.loader import NLILabel
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 import os
 from tqdm import tqdm # type: ignore
 # stuff for prompting
@@ -14,7 +14,7 @@ from backend.utils import test_dataset, load_config
 #print("Prompting utils loaded.")
 
 def verify_config(config):
-    required_config_keys = ["model", "prompt", "binary", "structure", "options"]
+    required_config_keys = ["model", "prompt", "binary", "structure", "options", "backend"]
     for key in required_config_keys:
         if key not in config.keys():
             raise KeyError(f"Key '{key}' must be in the config!")
@@ -58,6 +58,8 @@ def main(model_config, output_dir, run_label, seed):
         config["options"]["seed"] = seed
     else:
         config["options"] = {"seed": seed}
+
+    config["n_logprobs"] = 10
     
     # verify config has all necessary fields
     verify_config(config)
@@ -67,18 +69,28 @@ def main(model_config, output_dir, run_label, seed):
     prompt = config["prompt"]
     seed = config["options"]["seed"]
     run_output_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/seed{seed}"
-    os.makedirs(run_output_dir, exist_ok=False)
+    os.makedirs(run_output_dir, exist_ok=True)
     
     # setup log file
-    log_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/"
+    log_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/logs/"
     os.makedirs(log_dir, exist_ok=True)
-    log_file = f"seed{seed}.log"
-    logging.basicConfig(level=logging.INFO,
-                        filename=log_file,filemode="w",
-                        format="%(asctime)s %(levelname)s %(message)s")
+    log_file = f"{log_dir}/seed{seed}.log"
+    logger = logging.getLogger()
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    fh = logging.FileHandler(filename=log_file)
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(formatter)
+
+    logger.addHandler(fh)
 
     # run inference
-    zero_shot(config, run_output_dir)
+    try:
+        zero_shot(config, run_output_dir)
+        fh.close()
+    except:
+        logging.exception("Got exception when running inference")
+        fh.close()
+        raise
 
 if __name__=="__main__":
     main()

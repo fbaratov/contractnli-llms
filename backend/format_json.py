@@ -38,6 +38,7 @@ def format_annotation(response, prediction: str|dict[str, str], thinking, eviden
     }
     return annotation
 
+
 def reformat_response(response):
     reformatted_response = {
         "model": response["model"],
@@ -76,27 +77,34 @@ def save_response(config, ex, answer, evidence, output, output_dir):
     response_dict["annotation_sets"][0]["annotations"][ex.hypothesis_id] = format_annotation(
         prediction=answer,
         evidence=evidence,
-        response=output.answer,
+        response=output.response,
         thinking=output.thinking,
-        logprobs=output.logprobs,
+        logprobs=logprob_to_dict(output.logprobs),
         
         )
 
     with open(out_path, "w") as f:
         json.dump(response_dict, f)
-        
 
-@click.command()
-@click.option("--main_dir", type=click.Path(exists=True))
-def main(main_dir):
-    models = ["qwen3_30b"]
-    prompt = "narendra_nli"
-    seeds = [0, 1, 42]
 
-    for model in models:
-        for seed in seeds:
-            response_dir = f"{main_dir}/{model}/{prompt}/seed{seed}"
-            print(f"{response_dir}")
-            
-if __name__=="__main__":
-    main()
+
+
+def convert_logprob(logprob):
+        return {
+            "token": logprob.token,
+            "logprob": logprob.logprob
+        }
+
+def logprob_to_dict(logprobs):
+    if logprobs is None:
+        return None
+    
+    out_list = []
+    for token in logprobs:
+        out_dict = convert_logprob(token)
+        out_dict["top_logprobs"] = [
+            convert_logprob(logprob) for logprob in token.top_logprobs
+        ]
+        out_list.append(out_dict)
+
+    return out_list
