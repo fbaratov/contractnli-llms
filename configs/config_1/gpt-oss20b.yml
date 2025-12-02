@@ -1,5 +1,8 @@
+backend: ollama
 model: gpt-oss:20b
-prompt: None
+prompt: narendra_nli_nonbinary
+structure: None
+binary: False
 options: {
     "temperature": 1.,
 }

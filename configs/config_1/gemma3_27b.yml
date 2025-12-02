@@ -1,5 +1,8 @@
+backend: ollama
 model: gemma3:27b
-prompt: NLIReversed
+prompt: narendra_nli_nonbinary
+structure: NLIResponse
+binary: False
 options: {
-    "temperature": 0.1,
+    "temperature": 1.,
 }
