@@ -1,0 +1,5 @@
+Document: {contract}
+
+Hypothesis: {hypothesis}
+
+Given a document and a hypothesis, determine whether the document entails, contradicts, or is unrelated to the hypothesis. Answer strictly as \"Entailment\", \"Contradiction\", or \"NotMentioned\".
