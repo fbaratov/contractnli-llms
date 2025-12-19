@@ -21,8 +21,13 @@ def load_response_dict(response_dir):
     for _, _, files in os.walk(response_dir):
         
         for file in tqdm(files, desc="Loading responses"):
+            if "json" not in file:
+                continue
             fpath = f"{response_dir}/{file}"
-            file_json = load_json(fpath)            
+            try:
+                file_json = load_json(fpath)            
+            except json.JSONDecodeError:
+                print(f"Error decoding file at {fpath}!")
             file_dict[file_json["id"]] = file_json
 
     return file_dict
