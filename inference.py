@@ -77,31 +77,37 @@ def get_prediction(nli_response: str) -> str:
 
     contradiction = check_word("contradiction", clean_response)
     entailment = check_word("entailment", clean_response)
+    notmentioned = check_word("notmentioned", clean_response)
 
-    if contradiction and entailment:
+    total_mentions = int(contradiction) + int(entailment) + int(notmentioned)
+
+    if total_mentions != 1: # no labels or all labels means invalid answer
         return "InvalidAnswer"
     elif contradiction:
         return "Contradiction"
     elif entailment:
         return "Entailment"
-    elif not (contradiction or entailment):
-        return "InvalidAnswer"
+    else:
+        return "NotMentioned"
 
 def get_evidence(evidence_response: str) -> list[str]:
+    return None
     return re.findall("^\*\s*(.*)", evidence_response, re.MULTILINE)
 
 def extract_answer(response: dict|str) -> tuple[str, list[str]]:
     # Applies simple steps to find nli/evidence. works if instructions are followed
 
     if type(response) is dict:
-        nli_response = response["classification"] if "classification" in response.keys() else ""
-        evidence_response = response["evidence"] if "evidence" in response.keys() else ""
+        nli = response["classification"] if "classification" in response.keys() else ""
+        evidence = response["evidence"] if "evidence" in response.keys() else ""
     else:
-        nli_response, evidence_response = response, response
+        nli, evidence = "",""
+
+    if nli=="":
+        nli = get_prediction(response)
     
-    nli = get_prediction(nli_response)
-    
-    evidence = get_evidence(evidence_response)
+    if evidence=="":
+        evidence = get_evidence(response)
 
     return nli, evidence
 
