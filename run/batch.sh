@@ -12,9 +12,9 @@ SEEDS=(0 1 42)
 CONFIG_DIR=$1
 
 # Loop through the list of seeds
-for SEED in "${SEEDS[@]}"
-    do
-        for MODEL in "$CONFIG_DIR"/*; do
+for MODEL in "$CONFIG_DIR"/*; do
+    for SEED in "${SEEDS[@]}"
+        do
             if [ -f "$MODEL" ]; then
                 echo "Running $MODEL with seed $SEED..."
                 $PYTHON_CMD --seed $SEED --model_config $MODEL
