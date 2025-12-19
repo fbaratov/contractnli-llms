@@ -8,7 +8,7 @@ import numpy as np
 import sklearn.metrics
 from scipy.stats import hmean
 
-from nli_labels import ExNLILabel
+from .nli_labels import ExNLILabel
 
 
 
@@ -216,6 +216,11 @@ def evaluate_all(
                 np.array(class_labels[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value],
                 remove_not_mentioned(np.stack(class_probs[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value, :]))
             for l in binary_label_ids
+        ])
+        # added to make that make sense
+        metrics['macro_label_micro_doc']['class'] = _macro_average([
+            evaluate_class(np.array(class_labels[l]), np.stack(class_probs[l]))
+            for l in label_ids
         ])
     if task == 'identification_classification':
         metrics['macro_label_micro_doc']['class'] = _macro_average([
