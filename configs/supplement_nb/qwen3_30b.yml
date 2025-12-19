@@ -1,0 +1,8 @@
+backend: ollama
+model: qwen3:30b
+prompt: narendra_nli_nonbinary
+structure: None
+binary: False
+options: {
+    "temperature": 1.,
+}
