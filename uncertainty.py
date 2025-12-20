@@ -140,7 +140,6 @@ def sort_correct_wrong(dataset: dict, responses: dict):
             annotation = dataset[doc_id]["annotation_sets"][0]["annotations"][hypo_id]
             gt = annotation["choice"]
             pred = hypo_response["prediction"]
-            pred_token = hypo_response["pred_tokens"]["token"]
             pred_prob = hypo_response["pred_tokens"]["prob"]
             
             if gt == pred:
@@ -148,7 +147,7 @@ def sort_correct_wrong(dataset: dict, responses: dict):
             else:
                 target_dict = wrong
 
-            if pred_token not in target_dict.keys():
+            if pred not in target_dict.keys():
                 target_dict[pred] = []
             target_dict[pred].append(pred_prob)
                 
@@ -166,13 +165,17 @@ def boxplot_analysis(correct: dict, wrong: dict, save_file: str, ylabel: str ="P
         ] + [
         f"Wrong {k}" for k in wrong.keys()
         ]
-    print(len(d), len(labels))
     
         
 
     fig = plt.figure(figsize=(10,7)) 
     plt.boxplot(d, labels=labels)
-        
+    
+    ax = plt.gca()
+    # ax.set_xlim([xmin, xmax])
+    # ax.set_ylim([0., 1.])
+
+
     # ax.set_xticklabels(labels)
     # ax.set_xlabel("Results")
     # ax.set_ylabel(ylabel)
@@ -201,7 +204,7 @@ def remove_invalid(responses: dict):
 @click.command()
 @click.option("--dataset", type=click.Path(exists=True), default="data/test.json")
 @click.option("--out_file", type=click.Path())
-@click.option("--structure", type=str)
+@click.option("--structure", type=str, default=None)
 @click.option("--response_dir", type=click.Path(exists=True), multiple=True)
 def main(dataset, out_file, response_dir, structure):
     # setup out dir
