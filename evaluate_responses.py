@@ -15,11 +15,19 @@ def evaluate_responses(hypo_dict, dataset):
 
     for id, doc_dict in tqdm(hypo_dict.items(), desc="Evaluating NLI"):
         
-        true_e = 0
-        true_c = 0
-        false_e = 0
-        false_c = 0
-        none_prediction = 0
+        confusion = {
+            "e_as_e": 0,
+            "c_as_e": 0,
+            "n_as_e": 0,
+            "e_as_c": 0,
+            "c_as_c": 0,
+            "n_as_c": 0,
+            "e_as_n": 0,
+            "c_as_n": 0,
+            "n_as_n": 0,
+            "invalid": 0
+        }
+        
 
         hypo_dict = doc_dict["annotation_sets"][0]["annotations"]
         for hypo_id, response_dict in hypo_dict.items():
@@ -32,34 +40,20 @@ def evaluate_responses(hypo_dict, dataset):
                 continue
         
             prediction = response_dict["prediction"].lower()
-            
+
             label = organized_dset[id]["annotation_sets"][0]["annotations"][hypo_id]["choice"].lower()
-            match prediction:
-                case "entailment":
-                    if prediction == label:
-                        true_e += 1
-                    else:
-                        false_e += 1
-                
-                case "contradiction":
-                    if prediction == label:
-                        true_c += 1
-                    else:
-                        false_c += 1
-                
-                case _:
-                    none_prediction += 1
+            
+            label_char = label[0]
+            prediction_char = prediction[0]
+            
+            if prediction_char == "i":
+                dict_key = "invalid"
+            else:
+                dict_key = f"{label_char}_as_{prediction_char}"
+            
+            confusion[dict_key] += 1
 
-
-        per_doc[id] = {
-            "true_e": true_e,
-            "false_e": false_e,
-            "false_c": false_c,
-            "true_c": true_c,
-            "none_prediction": none_prediction,
-            "true_prediction": true_e + true_c,
-            "false_prediction": false_c + false_e
-        }
+        per_doc[id] = confusion
 
     return per_doc
 
@@ -72,9 +66,7 @@ def format_eval_dict(per_doc):
     
     return sum_dict
 
-def confusion_eval(response_dir, eval_dir, dataset, eval_label):
-
-    response_dict = load_response_dict(response_dir)
+def confusion_eval(response_dict, eval_dir, dataset, eval_label):
     per_doc = evaluate_responses(response_dict, dataset)
     sum_dict = format_eval_dict(per_doc)
 
@@ -83,9 +75,9 @@ def confusion_eval(response_dir, eval_dir, dataset, eval_label):
     with open(f"{eval_dir}/confusion_eval_{eval_label}.json", "w") as f:
         json.dump(per_doc, f)
 
-def reproducibility_eval(response_dir, eval_dir, dataset, eval_label):
+def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 
-    results = list(load_response_dict(response_dir).values())
+    results = list(response_dict.values())
 
     eval_dict = evaluate_all(
         dataset,
@@ -109,11 +101,13 @@ def main(response_dir, eval_dir, data, eval_label):
     os.makedirs(eval_dir, exist_ok=True)
     
     print(f"{response_dir}")
+    response_dict = load_response_dict(response_dir)
+
 
     print("Conducting reproducibility eval")
-    reproducibility_eval(response_dir, eval_dir, dataset, eval_label)
+    reproducibility_eval(response_dict, eval_dir, dataset, eval_label)
     print("Conducting confusion eval")
-    confusion_eval(response_dir, eval_dir, dataset, eval_label)
+    confusion_eval(response_dict, eval_dir, dataset, eval_label)
             
 
 
