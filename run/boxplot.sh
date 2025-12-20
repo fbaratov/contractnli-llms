@@ -17,7 +17,7 @@ for MODEL in "${MODELS[@]}"; do
     done
 
     if [[ "gpt-oss_20b" == $MODEL ]]; then
-        args+=" --structure response";
+        args+="";
     else
         args+=" --structure classification";
     fi
