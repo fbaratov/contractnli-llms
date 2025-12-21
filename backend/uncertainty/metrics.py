@@ -5,6 +5,8 @@ All metrics are implemented based on equations collected by Shorinwa et al. 2025
 import numpy as np
 import pprint
 
+from tqdm import tqdm
+
 def average_logprob(logprobs: np.array) -> np.double:
     return -np.average(logprobs)
 
@@ -46,13 +48,20 @@ def metrics_from_list(phrase_tokens: list, n=None) -> dict:
     for pt in phrase_tokens:
         pt_logprobs = []
         pt_logprobs.append(pt["logprob"])
-        for token in pt["top_logprobs"][:n]:
+        for token in pt["top_logprobs"][:n+1]:
             pt_logprobs.append(token["logprob"])
-        logprobs_list.append(pt)
+        logprobs_list.append(pt_logprobs)
     
-    top_logprobs_per_token = np.array(metrics_from_list)
-
+    top_logprobs_per_token = np.array(logprobs_list)
+    # print(top_logprobs_per_token)
     return all_metrics(top_logprobs_per_token)
+
+def calculate_uncertainty(responses):
+    for doc_id, doc_responses in tqdm(responses.items(), desc="Probabilities"):
+        for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
+            pred_tokens = hypo_response["pred_tokens"]
+            metrics = metrics_from_list(pred_tokens)
+            hypo_response["uncertainty"] = metrics
 
 if __name__=="__main__":
     top_logprobs_per_token = np.array([

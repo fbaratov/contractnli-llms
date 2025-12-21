@@ -75,11 +75,13 @@ def find_relevant_logprobs(response, return_first=False, structure=None):
     key_phrase_tokens = logprobs[token_pos[0]:token_pos[-1]+1]
     prediction_pos = find_relevant_tokens(key_phrase_tokens, prediction)
     prediction_pos = [pp + token_pos[0] for pp in prediction_pos]
+    
+    # return the right thing
+    relevant_logprobs = [logprobs[pp] for pp in prediction_pos]
     if return_first:
-        relevant_logprobs = [logprobs[pp] for pp in prediction_pos]
         return relevant_logprobs[0]
     else:
-        return logprobs[prediction_pos[0]]
+        return relevant_logprobs
     
 def logprob_to_prob(logprob, temp=1.):
     return math.exp(logprob / temp)
@@ -100,7 +102,7 @@ def calculate_probs(responses, structure=None):
         for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
             logprobs = hypo_response["logprobs"]
             get_probs(logprobs, temp=1.)
-            pred_tokens = find_relevant_logprobs(hypo_response, structure=structure)
+            pred_tokens = find_relevant_logprobs(hypo_response, structure=structure, return_first=False)
             hypo_response["pred_tokens"] = pred_tokens
 
 def sort_correct_wrong(dataset: dict, responses: dict):
@@ -109,19 +111,21 @@ def sort_correct_wrong(dataset: dict, responses: dict):
 
     for doc_id, doc_responses in tqdm(responses.items(), desc="Sorting"):
         for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
+
+            # extarct relevant values
             annotation = dataset[doc_id]["annotation_sets"][0]["annotations"][hypo_id]
             gt = annotation["choice"]
             pred = hypo_response["prediction"]
-            pred_prob = hypo_response["uncertainty"]
-            
+            # determine if correct or wrong prediction
             if gt == pred:
                 target_dict = correct
             else:
                 target_dict = wrong
 
+            # sort based on prediction
             if pred not in target_dict.keys():
                 target_dict[pred] = []
-            target_dict[pred].append(pred_prob)
+            target_dict[pred].append(hypo_response) # append annotation to get all info
                 
     print(f"Num correct: {sum(len(v) for v in correct.values())}")
     print(f"Num wrong:   {sum(len(v) for v in wrong.values())}")

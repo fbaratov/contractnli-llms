@@ -6,7 +6,7 @@
 SEEDS=(0 1 42)
 MODELS=(qwen3_30b gemma3_27b gpt-oss_20b llama3.1_8b)
 
-OUT_DIR_PREFIX="out/figs/config_1/first_token/"
+OUT_DIR=$1
 
 # Loop through the list of seeds
 for MODEL in "${MODELS[@]}"; do
@@ -22,8 +22,9 @@ for MODEL in "${MODELS[@]}"; do
         args+=" --structure classification";
     fi
     
-    OUT_FILE="${OUT_DIR_PREFIX}/${MODEL}.png"
-    args+=" --out_file $OUT_FILE"
+
+    args+=" --out_dir $OUT_DIR"
+    args+=" --label $MODEL"
 
     # run
     PYTHON_CMD="python uncertainty.py ${args}"

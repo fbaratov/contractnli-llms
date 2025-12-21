@@ -2,17 +2,21 @@ import click
 import os
 from backend.utils import load_json, load_response_dict
 from backend.dataset_utils import organize_dataset
-from backend.uncertainty.uncertainty import remove_invalid, calculate_probs, sort_correct_wrong, boxplot_analysis
-from backend.uncertainty.metrics import metrics_from_list
+from backend.uncertainty.utils import remove_invalid, calculate_probs, sort_correct_wrong
+from backend.uncertainty.visualization import boxplot_analysis
+from backend.uncertainty.metrics import calculate_uncertainty
+
+
 
 @click.command()
 @click.option("--dataset", type=click.Path(exists=True), default="data/test.json")
-@click.option("--out_file", type=click.Path())
+@click.option("--out_dir", type=click.Path())
+@click.option("--label", type=str)
 @click.option("--structure", type=str, default=None)
 @click.option("--response_dir", type=click.Path(exists=True), multiple=True)
-def main(dataset, out_file, response_dir, structure):
+def main(dataset, out_dir, response_dir, structure, label):
     # setup out dir
-    os.makedirs(os.path.dirname(out_file), exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
 
     # load dataset
     dataset = load_json(dataset)
@@ -27,6 +31,8 @@ def main(dataset, out_file, response_dir, structure):
         # add probabilities to responses
         calculate_probs(responses, structure=structure)
 
+        calculate_uncertainty(responses)
+
         # find correct/wrong
         c, w = sort_correct_wrong(dataset, responses)
 
@@ -38,12 +44,20 @@ def main(dataset, out_file, response_dir, structure):
             else:
                 for k,v in big_dict.items():
                     big_dict[k] = v + sub_dict[k]
-
     
     ### conduct analyses
 
     # do boxplots for classifications per response/seed
-    boxplot_analysis(correct, wrong, out_file)
+    # print(list(correct.values()))
+    for metric in list(correct.values())[0][0]["uncertainty"].keys():
+        out_file = f"{out_dir}/{metric}_{label}.png"
+        c_metric = {k : [c["uncertainty"][metric] for c in v] for k,v in correct.items()}
+        w_metric = {k : [w["uncertainty"][metric] for w in v] for k,v in wrong.items()}
+        
+
+
+        boxplot_analysis(c_metric, w_metric, out_file)
+
 
     # do sentence confidence analysis for INCORRECT answers, format this in a nice way.
     # sentence_analysis()
