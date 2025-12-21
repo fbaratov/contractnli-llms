@@ -2,13 +2,6 @@ from tqdm import tqdm
 from backend.nli_labels import ExNLILabel
 import math
 
-def by_id(id, responses_by_seed):
-    out = {}
-    for k,v in responses_by_seed.items():
-        out[k] = v[id]
-    return out
-
-
 def find_relevant_tokens(logprobs, key_phrase):
     # print("Assuming direct control")
     clean_keyphrase = "".join(key_phrase.split()) #remove whitespace to avoid issues
@@ -134,16 +127,6 @@ def sort_correct_wrong(dataset: dict, responses: dict):
     print(f"Num wrong:   {sum(len(v) for v in wrong.values())}")
 
     return correct, wrong
-
-
-
-    
-
-def sentence_analysis(dataset, responses):
-    pass
-
-def cross_model_judgement(dataset, responses):
-    pass
 
 def remove_invalid(responses: dict):
     # remove all invalid answers, as they are not going to be useful for logprobs.
