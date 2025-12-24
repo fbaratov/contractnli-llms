@@ -2,7 +2,7 @@ import click
 import os
 from backend.utils import load_json, load_response_dict
 from backend.dataset_utils import organize_dataset
-from backend.uncertainty.utils import remove_invalid, calculate_probs, sort_correct_wrong
+from backend.uncertainty.utils import remove_invalid, calculate_probs, sort_correct_wrong, find_relevant_logprobs
 from backend.uncertainty.visualization import boxplot_analysis
 from backend.uncertainty.metrics import calculate_uncertainty
 
@@ -14,7 +14,12 @@ from backend.uncertainty.metrics import calculate_uncertainty
 @click.option("--label", type=str)
 @click.option("--structure", type=str, default=None)
 @click.option("--response_dir", type=click.Path(exists=True), multiple=True)
-def main(dataset, out_dir, response_dir, structure, label):
+@click.option("--scope", type=str)
+def main(dataset, out_dir, response_dir, structure, label, scope):
+    valid_scopes = ["label", "first_token", "response"]
+    if scope not in valid_scopes:
+        raise ValueError(f"Scope {scope} is invalid. Valid options: {', '.join(valid_scopes)}.")
+    
     # setup out dir
     os.makedirs(out_dir, exist_ok=True)
 
@@ -29,8 +34,8 @@ def main(dataset, out_dir, response_dir, structure, label):
         remove_invalid(responses)
 
         # add probabilities to responses
-        calculate_probs(responses, structure=structure)
-
+        calculate_probs(responses)
+        find_relevant_logprobs(responses, relevant_scope=scope, structure=structure)
         calculate_uncertainty(responses)
 
         # find correct/wrong

@@ -65,7 +65,7 @@ def phrase_from_tokens(logprobs, token_pos):
         phrase += logprobs[tp]["token"]
     return phrase
 
-def find_relevant_logprobs(response, return_first=False, structure=None):
+def find_relevant_logprobs_per_response(response, return_first=False, structure=None):
     # set up stuff
     
     prediction = response["prediction"]
@@ -77,12 +77,21 @@ def find_relevant_logprobs(response, return_first=False, structure=None):
     prediction_pos = [pp + token_pos[0] for pp in prediction_pos]
     
     # return the right thing
-    relevant_logprobs = [logprobs[pp] for pp in prediction_pos]
     if return_first:
-        return relevant_logprobs[0]
+        relevant_pos = prediction_pos[0]
+        return [logprobs[relevant_pos]]
     else:
+        relevant_logprobs = [logprobs[pp] for pp in prediction_pos]
         return relevant_logprobs
-    
+
+def find_relevant_logprobs(responses, structure=None, relevant_scope=None):
+    for doc_id, doc_responses in tqdm(responses.items(), desc="Probabilities"):
+        for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
+            if relevant_scope in ["first_token", "label"]:
+                hypo_response["pred_tokens"] = find_relevant_logprobs_per_response(hypo_response, structure=structure, return_first = (relevant_scope=="first_token"))
+            else:
+                hypo_response["pred_tokens"] = hypo_response["logprobs"]
+
 def logprob_to_prob(logprob, temp=1.):
     return math.exp(logprob / temp)
 
@@ -97,13 +106,12 @@ def get_probs(logprobs, temp=1.):
         # print(v["prob"])
 
 
-def calculate_probs(responses, structure=None):
+def calculate_probs(responses):
     for doc_id, doc_responses in tqdm(responses.items(), desc="Probabilities"):
         for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
             logprobs = hypo_response["logprobs"]
             get_probs(logprobs, temp=1.)
-            pred_tokens = find_relevant_logprobs(hypo_response, structure=structure, return_first=False)
-            hypo_response["pred_tokens"] = pred_tokens
+            
 
 def sort_correct_wrong(dataset: dict, responses: dict):
     correct = {}
