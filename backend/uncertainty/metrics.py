@@ -63,7 +63,7 @@ def calculate_uncertainty(responses, n=5):
     for doc_id, doc_responses in tqdm(responses.items(), desc="Probabilities"):
         for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
             pred_tokens = hypo_response["pred_tokens"]
-            metrics = metrics_from_list(pred_tokens, n=5)
+            metrics = metrics_from_list(pred_tokens, n=n)
             hypo_response["uncertainty"] = metrics
 
 if __name__=="__main__":
