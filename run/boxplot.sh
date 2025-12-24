@@ -7,14 +7,18 @@ SEEDS=(0 1 42)
 MODELS=(qwen3_30b gemma3_27b gpt-oss_20b llama3.1_8b)
 
 OUT_DIR=$1
+SCOPE=$2
 
 # Loop through the list of seeds
 for MODEL in "${MODELS[@]}"; do
     args=""
+    # echo \[
     for SEED in "${SEEDS[@]}"; do
             RESPONSE_DIR="out/responses/config_1/$MODEL/narendra_nli_nonbinary/seed$SEED"
             args+=" --response_dir $RESPONSE_DIR"
+            # echo \"$RESPONSE_DIR\",
     done
+    # echo \]
 
     if [[ "gpt-oss_20b" == $MODEL ]]; then
         args+="";
@@ -27,7 +31,7 @@ for MODEL in "${MODELS[@]}"; do
     args+=" --label $MODEL"
 
     # run
-    PYTHON_CMD="python uncertainty.py ${args}"
+    PYTHON_CMD="python uncertainty.py ${args} --scope $SCOPE"
     echo $PYTHON_CMD
     $PYTHON_CMD
 
