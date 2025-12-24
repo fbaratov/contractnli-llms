@@ -8,7 +8,7 @@ import pprint
 from tqdm import tqdm
 
 def average_logprob(logprobs: np.array) -> np.double:
-    return -np.average(logprobs)
+    return -np.mean(logprobs)
 
 def perplexity(logprobs: np.array) -> np.double:
     return np.exp(average_logprob(logprobs))
@@ -17,7 +17,7 @@ def maximum_logprob(logprobs: np.array) -> np.double:
     return np.max(-logprobs)
 
 def response_improbability(logprobs: np.array) -> np.double:
-    return 1 - np.prod(logprobs)
+    return 1 - np.prod(np.exp(logprobs))
 
 def probability_distribution(top_logprobs: np.array) -> np.double:
     top_probs = np.exp(top_logprobs)
@@ -29,7 +29,6 @@ def entropy(top_logprobs_per_token: np.array) -> np.double:
     return np.max(prob_dist)
 
 def all_metrics(top_logprobs_per_token: np.array) -> np.double:
-    
     uncertainty_dict = {}
     logprobs = top_logprobs_per_token[:,0]
 
@@ -39,6 +38,10 @@ def all_metrics(top_logprobs_per_token: np.array) -> np.double:
     # functions requiring just the top logprob
     for fn in [average_logprob, perplexity, maximum_logprob, response_improbability]:
         uncertainty_dict[fn.__name__] = fn(logprobs)
+        # if fn == response_improbability:
+        #     print([(lp, np.exp(lp)) for lp in logprobs])
+        #     print(uncertainty_dict[fn.__name__])
+
 
     return uncertainty_dict
 
@@ -56,11 +59,11 @@ def metrics_from_list(phrase_tokens: list, n=None) -> dict:
     # print(top_logprobs_per_token)
     return all_metrics(top_logprobs_per_token)
 
-def calculate_uncertainty(responses):
+def calculate_uncertainty(responses, n=5):
     for doc_id, doc_responses in tqdm(responses.items(), desc="Probabilities"):
         for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
             pred_tokens = hypo_response["pred_tokens"]
-            metrics = metrics_from_list(pred_tokens)
+            metrics = metrics_from_list(pred_tokens, n=5)
             hypo_response["uncertainty"] = metrics
 
 if __name__=="__main__":
