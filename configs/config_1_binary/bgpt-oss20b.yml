@@ -1,0 +1,8 @@
+backend: ollama
+model: gpt-oss:20b
+prompt: narendra_nli
+structure: BinaryNLIReversed
+binary: True
+options: {
+    "temperature": 1.,
+}
