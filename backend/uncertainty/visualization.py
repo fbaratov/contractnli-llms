@@ -1,6 +1,12 @@
 
 from pylab import plot, show, savefig, xlim, figure, \
                 ylim, legend, boxplot, setp, axes
+import numpy as np
+
+def set_boxplot_line_color(bp, color):
+    for element in ['boxes', 'whiskers', 'caps', 'medians']:
+        for item in bp[element]:
+            item.set_color(color)
 
 # function for setting the colors of the box plots pairs
 def setBoxColors(bp):
@@ -24,35 +30,56 @@ def setBoxColors(bp):
 
 import matplotlib.pyplot as plt
 
-def boxplot_analysis(correct: dict, wrong: dict, save_file: str, ylabel: str ="Probability"):
+def boxplot_analysis(correct: dict, wrong: dict, save_file: str, metric: str, title: str = ""):
 
-    d = []
     classes = sorted(list(correct.keys()))
-    labels = []
+
+    correct_data = []
+    wrong_data = []
     for k in classes:
-        d += [
-            correct[k],
-            wrong[k]
-        ]
-        labels += [
-            f"Correct {k}",
-            f"Wrong {k}"
-        ]
+        correct_data.append(correct[k])
+        wrong_data.append(wrong[k])
 
+    num_groups = len(classes)
+    positions = np.arange(num_groups)
 
-    # d = list(correct.values()) + list(wrong.values())
-    # labels = [
-    #     f"Correct {k}" for k in correct.keys()
-    #     ] + [
-    #     f"Wrong {k}" for k in wrong.keys()
-    #     ]
+    offset = 0.15
+    width = 0.2
     
-        
-
-    fig = plt.figure(figsize=(10,7)) 
-    plt.boxplot(d, labels=labels, showfliers=False )
-    
+    fig = plt.figure(figsize=(10,7))
     ax = plt.gca()
+
+    
+    bp_correct = plt.boxplot(
+        correct_data,
+        positions=positions - offset,
+        widths=width,
+        patch_artist=False,
+        showfliers=False
+    )
+
+    bp_wrong = plt.boxplot(
+        wrong_data,
+        positions=positions + offset,
+        widths=width,
+        patch_artist=False,
+        showfliers=False
+    )
+
+    # Color the boxes
+    set_boxplot_line_color(bp_correct, "blue")
+    set_boxplot_line_color(bp_wrong, "red")
+
+    # Axis formatting
+    plt.xticks(positions, classes)
+    plt.ylabel(metric.capitalize())
+    plt.legend(
+        [bp_correct['boxes'][0], bp_wrong['boxes'][0]],
+        ['Correct', 'Wrong']
+    )
+    
+    ax.set_xlabel("Response prediction")
+    ax.set_title(title)
     
     fig.savefig(save_file)
 

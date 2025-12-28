@@ -41,6 +41,20 @@ def main(dataset, out_dir, response_dir, structure, label, scope):
         # find correct/wrong
         c, w = sort_correct_wrong(dataset, responses)
 
+        seed = fp.split("/")[-1]
+        for metric in list(c.values())[0][0]["uncertainty"].keys():
+            c_metric = {k : [c["uncertainty"][metric] for c in v] for k,v in c.items()}
+            w_metric = {k : [w["uncertainty"][metric] for w in v] for k,v in w.items()}
+            
+            out_file = f"{out_dir}/{metric}_{label}_{seed}.png"
+            boxplot_analysis(
+                correct=c_metric,
+                wrong=w_metric,
+                save_file=out_file,
+                metric=metric,
+                title=f"{metric.capitalize()} for {label} ({seed})"
+            )
+
         # complicated indexing to save on boilerplating 
         for big_dict, sub_dict in [(correct, c), (wrong, w)]:
             if len(big_dict) == 0:
@@ -55,13 +69,17 @@ def main(dataset, out_dir, response_dir, structure, label, scope):
     # do boxplots for classifications per response/seed
     # print(list(correct.values()))
     for metric in list(correct.values())[0][0]["uncertainty"].keys():
-        out_file = f"{out_dir}/{metric}_{label}.png"
+        out_file = f"{out_dir}/{metric}_{label}_aggregate.png"
         c_metric = {k : [c["uncertainty"][metric] for c in v] for k,v in correct.items()}
         w_metric = {k : [w["uncertainty"][metric] for w in v] for k,v in wrong.items()}
         
-
-
-        boxplot_analysis(c_metric, w_metric, out_file)
+        boxplot_analysis(
+                correct=c_metric,
+                wrong=w_metric,
+                save_file=out_file,
+                metric=metric,
+                title=f"{metric.capitalize()} for {label}"
+            )
 
 
     # do sentence confidence analysis for INCORRECT answers, format this in a nice way.
