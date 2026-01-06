@@ -1,8 +1,0 @@
-backend: ollama
-model: gemma3:27b
-prompt: narendra_nli
-structure: BinaryNLIReversed
-binary: True
-options: {
-    "temperature": 1.,
-}

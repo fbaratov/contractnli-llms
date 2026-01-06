@@ -41,7 +41,7 @@ def prompt_model(prompt: str, config) -> tuple[dict|str, str|None]:
     output = generate(model, 
                       prompt,
                       options=options,
-                      logprobs=True,
+                      logprobs=(top_logprobs > 0),
                       top_logprobs=top_logprobs,
                       format = structure.model_json_schema() if structure is not None else None)
     

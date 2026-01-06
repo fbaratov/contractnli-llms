@@ -1,4 +1,0 @@
-model: {
-  repo_id: "Qwen/Qwen3-VL-30B-A3B-Instruct-GGUF",
-  filename: "Qwen3VL-30B-A3B-Instruct-F16-split-00001-of-00002.gguf"
-}

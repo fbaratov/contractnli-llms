@@ -3,7 +3,7 @@ import click
 import logging
 
 from contract_nli.dataset.loader import NLILabel
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
 import os
 from tqdm import tqdm # type: ignore
 # stuff for prompting
@@ -59,7 +59,7 @@ def main(model_config, output_dir, run_label, seed):
     else:
         config["options"] = {"seed": seed}
 
-    config["n_logprobs"] = 20 # hardcoded number of logprobs, would be easy to specify in configs instead. low number to make inference quicker
+    config["n_logprobs"] = 0 # hardcoded number of logprobs, would be easy to specify in configs instead. low number to make inference quicker
     
     # verify config has all necessary fields
     verify_config(config)

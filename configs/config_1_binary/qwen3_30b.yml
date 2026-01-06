@@ -1,8 +1,0 @@
-backend: ollama
-model: qwen3:30b
-prompt: narendra_nli
-structure: BinaryNLIReversed
-binary: True
-options: {
-    "temperature": 1.,
-}

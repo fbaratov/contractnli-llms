@@ -1,3 +1,7 @@
+configs/ignore_configs
+notebooks/.ignore
+run/.ignore
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

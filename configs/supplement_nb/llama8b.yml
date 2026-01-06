@@ -1,9 +1,0 @@
-# required_config_keys = ["model", "prompt", "binary", "think", "structure", "options"]
-backend: ollama
-model: llama3.1:8b
-prompt: narendra_nli_nonbinary
-structure: NLIResponse
-binary: False
-options: {
-    "temperature": 0.1,
-}

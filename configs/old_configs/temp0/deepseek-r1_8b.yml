@@ -1,4 +1,0 @@
-model: deepseek-r1:8b
-options: {
-    "temperature": 0.,
-}
