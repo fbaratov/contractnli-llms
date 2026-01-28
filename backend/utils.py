@@ -3,9 +3,6 @@ import json
 from tqdm import tqdm
 import os
 
-# global stuff to define
-test_dataset = "data/test.json"
-
 def load_config(yaml_path):
     with open(yaml_path, "r") as f:
         config = yaml.safe_load(f)
