@@ -14,6 +14,7 @@ def load_json(json_path):
     return file_json
 
 def load_response_dict(response_dir):
+    # loads files as a dict with keys being document id's
     file_dict = {}
     for _, _, files in os.walk(response_dir):
         

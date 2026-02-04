@@ -70,7 +70,7 @@ def predict_at_k(y_prob, k):
 
 
 def evaluate_class(y_true, y_prob) -> Dict[str, float]:
-    assert y_prob.ndim == 2 and y_prob.shape[1] == len(ExNLILabel)
+    assert y_prob.ndim == 2 and y_prob.shape[1] == 4
     assert y_true.ndim == 1
     assert len(y_true) == len(y_prob)
     y_pred = np.argmax(y_prob, axis=1)
@@ -110,20 +110,23 @@ def evaluate_class(y_true, y_prob) -> Dict[str, float]:
 def _macro_average(dicts: List[Dict[str, float]]):
     ret = dict()
     for k in dicts[0].keys():
-        vals = [d[k] for d in dicts if not np.isnan(d[k])]
-        ret[k] = sum(vals) / float(len(vals))
+        try:
+            vals = [d[k] for d in dicts if not np.isnan(d[k])]
+            ret[k] = sum(vals) / float(len(vals))
+        except ZeroDivisionError:
+            ret[k] = None
     return ret
 
 
 def remove_not_mentioned(y_pred):
-    assert y_pred.shape[1] == len(ExNLILabel)
+    assert y_pred.shape[1] == 4
     valid_labels = [ExNLILabel.CONTRADICTION.value, ExNLILabel.ENTAILMENT.value, ExNLILabel.INVALID_ANSWER.value]
     valid_len = len(valid_labels)
     y_bin = y_pred[:, valid_labels]
     y_bin = np.where(np.tile(np.sum(y_bin, axis=1, keepdims=True), [1, valid_len]) == 0,
                      0.5,
                      y_bin / np.sum(y_bin, axis=1, keepdims=True))
-    y_pred = np.zeros((len(y_pred), len(ExNLILabel)), dtype=y_pred.dtype)
+    y_pred = np.zeros((len(y_pred), 4), dtype=y_pred.dtype)
     y_pred[:, valid_labels] = y_bin
     return y_pred
 
@@ -136,8 +139,8 @@ def evaluate_all(
         ) -> dict:
     assert task in ['identification_classification', 'classification', 'identification']
     id_to_result = {r['id']: r for r in results} # creates dict of {doc_id: result_dict} format from results
-    label_ids = sorted(results[0]['annotation_sets'][0]['annotations'].keys()) # gets list of all hypothesis keys 
-    class_names = [ExNLILabel(i).to_anno_name() for i in range(len(ExNLILabel))] # gets potential labels
+    label_ids = sorted(dataset['labels'].keys()) # gets list of all hypothesis keys 
+    class_names = [ExNLILabel(i).to_anno_name() for i in range(4)][:4] # gets potential labels
     assert label_ids == sorted(dataset['labels'].keys()) or task == 'classification'
     if task in ['identification_classification', 'identification']:
         span_probs = defaultdict(list)
@@ -185,14 +188,18 @@ def evaluate_all(
     metrics = dict()
 
     metrics['micro_label_micro_doc'] = dict()
-    if task in ['identification_classification', 'classification']:
-        metrics['micro_label_micro_doc']['class_binary'] = evaluate_class(
-            np.concatenate([np.array(class_labels[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value]
-                            for l in binary_label_ids]),
-            remove_not_mentioned(
-                np.vstack([np.stack(class_probs[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value, :]
-                           for l in binary_label_ids]))
-        )
+    # if task in ['identification_classification', 'classification']:
+    #     try:
+    #         metrics['micro_label_micro_doc']['class_binary'] = evaluate_class(
+    #             np.concatenate([np.array(class_labels[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value]
+    #                             for l in binary_label_ids]),
+    #             remove_not_mentioned(
+    #                 np.vstack([np.stack(class_probs[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value, :]
+    #                         for l in binary_label_ids]))
+    #         )
+    #     except ValueError as e:
+    #         print("NM only document")
+    #         metrics['micro_label_micro_doc']['class_binary'] = None
     if task == 'identification_classification':
         metrics['micro_label_micro_doc']['class'] = evaluate_class(
             np.concatenate([class_labels[l] for l in label_ids]),
@@ -211,12 +218,12 @@ def evaluate_all(
             })
     metrics['macro_label_micro_doc'] = dict()
     if task in ['identification_classification', 'classification']:
-        metrics['macro_label_micro_doc']['class_binary'] = _macro_average([
-            evaluate_class(
-                np.array(class_labels[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value],
-                remove_not_mentioned(np.stack(class_probs[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value, :]))
-            for l in binary_label_ids
-        ])
+        # metrics['macro_label_micro_doc']['class_binary'] = _macro_average([
+        #     evaluate_class(
+        #         np.array(class_labels[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value],
+        #         remove_not_mentioned(np.stack(class_probs[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value, :]))
+        #     for l in binary_label_ids
+        # ])
         # added to make that make sense
         metrics['macro_label_micro_doc']['class'] = _macro_average([
             evaluate_class(np.array(class_labels[l]), np.stack(class_probs[l]))
@@ -294,14 +301,14 @@ def evaluate_all(
     for l in label_ids:
         metrics['label_wise'][l] = dict()
         metrics['label_wise'][l]['micro_doc'] = dict()
-        if task in ['identification_classification', 'classification']:
-            metrics['label_wise'][l]['micro_doc']['class_binary'] = evaluate_class(
-                np.array(class_labels[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value],
-                remove_not_mentioned(np.stack(class_probs[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value, :]))
-            if not (ExNLILabel.CONTRADICTION.value in class_labels[l] and ExNLILabel.ENTAILMENT.value in class_labels[l]):
-                metrics['label_wise'][l]['micro_doc']['class_binary'] = {
-                    k: np.nan for k in metrics['label_wise'][l]['micro_doc']['class_binary'].keys()
-                }
+        # if task in ['identification_classification', 'classification']:
+        #     metrics['label_wise'][l]['micro_doc']['class_binary'] = evaluate_class(
+        #         np.array(class_labels[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value],
+        #         remove_not_mentioned(np.stack(class_probs[l])[np.array(class_labels[l]) != ExNLILabel.NOT_MENTIONED.value, :]))
+        #     if not (ExNLILabel.CONTRADICTION.value in class_labels[l] and ExNLILabel.ENTAILMENT.value in class_labels[l]):
+        #         metrics['label_wise'][l]['micro_doc']['class_binary'] = {
+        #             k: np.nan for k in metrics['label_wise'][l]['micro_doc']['class_binary'].keys()
+        #         }
         if task == 'identification_classification':
             metrics['label_wise'][l]['micro_doc']['class'] = evaluate_class(
                 np.array(class_labels[l]), np.stack(class_probs[l]))

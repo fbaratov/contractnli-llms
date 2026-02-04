@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(m
 import os
 from tqdm import tqdm # type: ignore
 # stuff for prompting
-from backend.data.utils import get_evidence, load_dataset
+from backend.dataset.utils import get_evidence, load_dataset
 from inference import process_sample
 from backend.format_json import save_response
 from backend.utils import load_config
@@ -27,8 +27,6 @@ def verify_config(config):
             raise KeyError(f"Key '{key}' must be provided in options!")
 
 def zero_shot(config, output_dir, dataset):
-    # load test dataset
-    # examples = load_dataset(dataset)
 
     if config["binary"]:
         logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
@@ -38,7 +36,7 @@ def zero_shot(config, output_dir, dataset):
         if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
 
-        answer, evidence, output = process_sample(ex, config)
+        answer, evidence, output = process_sample(ex.__dict__, config, class_names=dataset.class_names)
 
         # save answer to output/sample_idx
         save_response(config, ex, answer, evidence, output, output_dir)
