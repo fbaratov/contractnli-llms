@@ -17,6 +17,10 @@ class DocNLI(BaseModel):
     explanation: str
     classification: Literal["entailment", "not_entailment"]
 
+class NLI4WillsResponse(BaseModel):
+    explanation: str
+    classification: Literal["support", "refute", "unrelated"]
+
 class EvidenceResponse(BaseModel):
     evidence: list[str]
     thinking: str

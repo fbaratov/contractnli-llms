@@ -1,0 +1,8 @@
+Law: {law_text}
+
+Conditions: {conditions_text}
+
+Statement: {statement_text}
+
+
+Given a law, conditions, and statement, determine whether the law and condition refute, support, or are unrelated to the statement. Answer strictly as \"Refute"\, \"Support"\, or \"Unrelated"\.

@@ -2,9 +2,7 @@
 
 MAIN_DIR=$1
 
-BASE_CMD="python evaluate_responses.py"
-DATA="data/test.json"
-
+BASE_CMD="python evaluate_responses.py ${@:2}"
 
 
 
@@ -26,7 +24,7 @@ find "$MAIN_DIR" -type d | while read -r dir; do
         EVAL_LABEL=$(basename "$dir")
         echo "Label: $EVAL_LABEL"
 
-        PYTHON_CMD="$BASE_CMD --response_dir $RESPONSE_DIR --eval_dir $EVAL_DIR --data $DATA --eval_label $EVAL_LABEL"
+        PYTHON_CMD="$BASE_CMD --response_dir $RESPONSE_DIR --eval_dir $EVAL_DIR --eval_label $EVAL_LABEL"
         echo $PYTHON_CMD
         $PYTHON_CMD
         
