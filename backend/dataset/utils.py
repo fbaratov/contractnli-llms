@@ -1,4 +1,4 @@
-from backend.dataset.loader import AbridgedDocNLILoader, DocNLILoader, NLI4WillsLoader
+from backend.dataset.loader import AbridgedDocNLILoader, ContractNLILoader, DocNLILoader, NLI4WillsLoader
 from ..contract_nli_bert.contract_nli.dataset.loader import ContractNLIExample
 import json
 
@@ -16,8 +16,8 @@ def load_dataset(dset_path: str, dset_type):
             with open(dset_path) as fin:
                 input_dict = json.load(fin)
             examples = ContractNLIExample.load(input_dict)
-            examples.class_names = ["Entailment", "Contradiction", "NotMentioned"] # bit of a bandaid fix to make class names get passed while also not altering the original code
-            return examples
+            loader = ContractNLILoader(examples)
+            return loader
         case "docnli":
             examples = DocNLILoader(dset_path)
             return examples
