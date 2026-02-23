@@ -44,6 +44,16 @@ class NLILoader:
         return len(self.data)
 
 
+class ContractNLILoader(NLILoader):
+    """
+    Simple wrapper to basically put contractnli list and class names into one class.
+    """
+
+    def __init__(self, examples, class_names=["Entailment", "Contradiction", "NotMentioned"]):
+        self.data = examples
+        self.class_names = class_names
+
+
 class DocNLILoader(NLILoader):
     def __init__(self, dset_path):
         json_data = load_json(dset_path)
@@ -127,7 +137,8 @@ class NLI4WillsLoader(NLILoader):
     def __init__(self, dset_path):
         self.class_names = [ExNLILabel.to_anno_name(ExNLILabel.REFUTE),
                        ExNLILabel.to_anno_name(ExNLILabel.SUPPORT),
-                       ExNLILabel.to_anno_name(ExNLILabel.UNRELATED)]
+                       ExNLILabel.to_anno_name(ExNLILabel.UNRELATED),
+                       ExNLILabel.to_anno_name(ExNLILabel.INVALID_ANSWER)]
         self.data = self.load_from_csv(dset_path)
 
 
@@ -156,9 +167,18 @@ class NLI4WillsLoader(NLILoader):
 
         return data
             
+    def label_str2int(self, label_str):
+        return self.class_names.index(label_str)
+
     def label_int2str(self, label_int):
-        
         return self.class_names[label_int]
+    
+    def extract_predictions(self):
+        preds = []
+        for example in self.data:
+            label = example.label
+            preds.append(self.label_str2int(label))
+        return preds
     
     @classmethod
     def label_cnli(self, label_nli4wills):
@@ -207,22 +227,28 @@ class NLI4WillsLoader(NLILoader):
                 }
         return cnli_data
     
-    @classmethod
     def output_to_cnli(self, output):
         # changes labels to be equivalent to contractnli dataset
         annotations = output["annotation_sets"][0]["annotations"]
 
         # there's only one, but do this anyway for future robustness
         for hypothesis_id in annotations.keys():
-            # class_probs = annotations[hypothesis_id]["class_probs"]
-            # print(class_probs)
-            # pred = list(class_probs.keys())[int(list(class_probs.values())[0])] # find label of prediction
-            # pred_cnli = self.label_cnli(pred)
-            # str_pred_cnli = ExNLILabel.to_anno_name(pred_cnli)
             prediction = annotations[hypothesis_id]["prediction"]
             pred_cnli = self.label_cnli(prediction)
             choice = encode_onehot_vector(pred_cnli)[:4]
             
             class_probs = encode_dict(choice)
             annotations[hypothesis_id]["class_probs"] = class_probs
+        
         return output
+    
+    def extract_predictions_from_response(self, response):
+        int_preds = []
+        annotations = response["annotation_sets"][0]["annotations"]
+        
+        # runs only once but done to futureproof more or less :)))
+        for k, v in annotations.items():
+            prediction = v["prediction"]
+            int_preds.append(self.label_str2int(prediction))
+
+        return int_preds
