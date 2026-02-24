@@ -7,10 +7,10 @@ logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(m
 import os
 from tqdm import tqdm # type: ignore
 # stuff for prompting
-from backend.dataset_utils import get_evidence, load_dataset
+from backend.dataset.utils import get_evidence, load_dataset
 from inference import process_sample
 from backend.format_json import save_response
-from backend.utils import test_dataset, load_config
+from backend.utils import load_config
 #print("Prompting utils loaded.")
 
 def verify_config(config):
@@ -26,19 +26,17 @@ def verify_config(config):
         if key not in options.keys():
             raise KeyError(f"Key '{key}' must be provided in options!")
 
-def zero_shot(config, output_dir):
-    # load test dataset
-    examples = load_dataset(test_dataset)
+def zero_shot(config, output_dir, dataset):
 
     if config["binary"]:
         logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
 
     # for each sample ==>
-    for ex in tqdm(examples):
+    for ex in tqdm(dataset):
         if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
 
-        answer, evidence, output = process_sample(ex, config)
+        answer, evidence, output = process_sample(ex.__dict__, config, class_names=dataset.class_names)
 
         # save answer to output/sample_idx
         save_response(config, ex, answer, evidence, output, output_dir)
@@ -49,7 +47,17 @@ def zero_shot(config, output_dir):
 @click.option("--model_config", type=click.Path(exists=False))
 @click.option("--output_dir", type=click.Path())
 @click.option("--run_label", type=str, default="")
-def main(model_config, output_dir, run_label, seed):
+@click.option("--n_logprobs", type=int, default=0)
+def main(model_config, output_dir, run_label, seed, n_logprobs):
+    """
+    Runs inference based on model config and saves it to specified location. Dataset/model params determined in config, arguments determine run-specific stuff such as seed.
+
+    :param model_config: Description
+    :param output_dir: Description
+    :param run_label: Description
+    :param seed: Description
+    :param n_logprobs: Description
+    """
 
     # set up config 
     config = load_config(model_config)
@@ -59,7 +67,7 @@ def main(model_config, output_dir, run_label, seed):
     else:
         config["options"] = {"seed": seed}
 
-    config["n_logprobs"] = 0 # hardcoded number of logprobs, would be easy to specify in configs instead. low number to make inference quicker
+    config["n_logprobs"] = n_logprobs
     
     # verify config has all necessary fields
     verify_config(config)
@@ -83,9 +91,11 @@ def main(model_config, output_dir, run_label, seed):
 
     logger.addHandler(fh)
 
+
     # run inference
     try:
-        zero_shot(config, run_output_dir)
+        loaded_dataset = load_dataset(dset_path=config["dset_path"], dset_type=config["dset_type"])
+        zero_shot(config, run_output_dir, loaded_dataset)
         fh.close()
     except:
         logging.exception("Got exception when running inference")

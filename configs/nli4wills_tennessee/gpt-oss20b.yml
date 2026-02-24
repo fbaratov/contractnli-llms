@@ -1,0 +1,10 @@
+backend: ollama
+model: gpt-oss:20b
+prompt: nli4wills
+structure: None
+dset_path: data/nli4wills/Tennessee/original_datasets/test.csv
+dset_type: nli4wills
+binary: False
+options: {
+    "temperature": 1.,
+}

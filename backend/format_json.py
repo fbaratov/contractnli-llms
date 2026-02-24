@@ -8,8 +8,13 @@ import logging
 
 
 def encode_onehot_vector(prediction):
+    if type(prediction) is str:
+        prediction = ExNLILabel.from_str(prediction).value
+    if type(prediction) is ExNLILabel:
+        prediction = prediction.value
+
     encoding = np.zeros(len(ExNLILabel))
-    encoding[ExNLILabel.from_str(prediction).value] = 1.
+    encoding[prediction] = 1.
     return list(encoding)
 
 def encode_dict(choice):
