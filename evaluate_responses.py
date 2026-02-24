@@ -1,11 +1,12 @@
 import json
 import os
 from tqdm import tqdm
-from backend.data.utils import organize_dataset
+from backend.dataset.loader import NLI4WillsLoader
+from backend.dataset.utils import load_dataset, organize_dataset
 from backend.evaluation import ExNLILabel, evaluate_all
 import numpy as np
 import click
-from backend.utils import load_response_dict
+from backend.utils import load_json, load_response_dict
 
 def evaluate_responses(hypo_dict, dataset):
     per_doc = {}
@@ -77,7 +78,7 @@ def confusion_eval(response_dict, eval_dir, dataset, eval_label):
 
 def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 
-    results = list(response_dict.values())
+    results = list(dict(sorted(response_dict.items())).values())
 
     eval_dict = evaluate_all(
         dataset,
@@ -94,20 +95,33 @@ def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 @click.option("--eval_dir", type=click.Path())
 @click.option("--dataset", type=click.Path(exists=True), default="data/test.json")
 @click.option("--eval_label")
-def main(response_dir, eval_dir, dataset, eval_label):
-    with open(dataset, "r") as f:
-        dataset = json.load(f)
+@click.option("--dset_type", type=str)
+def main(response_dir, eval_dir, dataset, eval_label, dset_type):
 
     os.makedirs(eval_dir, exist_ok=True)
     
     print(f"{response_dir}")
     response_dict = load_response_dict(response_dir)
 
+    if dset_type != "contractnli":
+        dataset = load_dataset(dset_path=dataset, dset_type=dset_type)
+        
+        # convert dataset to cnli format
+        dataset = dataset.to_cnli()
+
+        # convert output to cnli format (shorten certain lists/dicts)
+        for k,v in response_dict.items():
+            response_dict[k] = NLI4WillsLoader.output_to_cnli(v)
+    else:
+        dataset = load_json(dataset)
+
+
+
 
     print("Conducting reproducibility eval")
     reproducibility_eval(response_dict, eval_dir, dataset, eval_label)
-    print("Conducting confusion eval")
-    confusion_eval(response_dict, eval_dir, dataset, eval_label)
+    # print("Conducting confusion eval")
+    # confusion_eval(response_dict, eval_dir, dataset, eval_label)
             
 
 
