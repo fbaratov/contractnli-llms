@@ -1,7 +1,7 @@
 import json
 import os
 from tqdm import tqdm
-from backend.dataset_utils import organize_dataset
+from backend.data.utils import organize_dataset
 from backend.evaluation import ExNLILabel, evaluate_all
 import numpy as np
 import click
@@ -92,10 +92,10 @@ def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 @click.command()
 @click.option("--response_dir", type=click.Path(exists=True))
 @click.option("--eval_dir", type=click.Path())
-@click.option("--data", type=click.Path(exists=True), default="data/test.json")
+@click.option("--dataset", type=click.Path(exists=True), default="data/test.json")
 @click.option("--eval_label")
-def main(response_dir, eval_dir, data, eval_label):
-    with open(data, "r") as f:
+def main(response_dir, eval_dir, dataset, eval_label):
+    with open(dataset, "r") as f:
         dataset = json.load(f)
 
     os.makedirs(eval_dir, exist_ok=True)
