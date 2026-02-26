@@ -12,7 +12,7 @@ class OllamaInference(Inference):
         self.config = config
         self.class_names = class_names
 
-    def prompt_model(self, prompt: str, config) -> tuple[dict|str, str|None]:
+    def prompt_model(self, prompt: str) -> tuple[dict|str, str|None]:
         # get values from config
         model = self.config["model"]
         options = self.config["options"]
@@ -68,10 +68,13 @@ class OllamaInference(Inference):
             return class_mentioned
 
     def get_evidence(self, evidence_response: str) -> list[str]:
+        """
+        Unimplemented, included for future relevance
+        """
         return None
         return refindall("^\*\s*(.*)", evidence_response, re.MULTILINE)
 
-    def extract_answer(self, response: dict|str) -> tuple[str, list[str]]:
+    def postprocess(self, response: dict|str) -> tuple[str, list[str]]:
         # Applies simple steps to find nli/evidence. works if instructions are followed
 
         if type(response) is dict:

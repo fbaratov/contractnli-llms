@@ -11,6 +11,7 @@ from backend.dataset.utils import get_evidence, load_dataset
 from inference import process_sample
 from backend.format_json import save_response
 from backend.utils import load_config
+from backend.inference import OllamaInference
 #print("Prompting utils loaded.")
 
 def verify_config(config):
@@ -28,6 +29,9 @@ def verify_config(config):
 
 def zero_shot(config, output_dir, dataset):
 
+    inference = OllamaInference(config, dataset.class_names)
+
+
     if config["binary"]:
         logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
 
@@ -36,7 +40,7 @@ def zero_shot(config, output_dir, dataset):
         if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
 
-        answer, evidence, output = process_sample(ex.__dict__, config, class_names=dataset.class_names)
+        answer, evidence, output = inference.process_sample(ex.__dict__)
 
         # save answer to output/sample_idx
         save_response(config, ex, answer, evidence, output, output_dir)

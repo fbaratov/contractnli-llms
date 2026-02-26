@@ -37,29 +37,23 @@ class Inference:
         return prompt
 
     def prompt_model(self, prompt: str) -> tuple[dict|str, str|None]:
-        output = ...
-
         raise NotImplementedError("Implement in subclass")
 
         return output
     
     def postprocess(self, response: dict|str) -> tuple[str, list[str]]:
-        nli, evidence = ...
-
         raise NotImplementedError("Implement in subclass!")
 
         return nli, evidence
     
     def process_sample(self, sample: dict):
-        answer, evidence, output = ...
 
         prompt_template = self.config["prompt"]
         prompt = self.assemble_prompt(sample, prompt_template=prompt_template)
         
         output = self.prompt_model(prompt)
         
-        answer, evidence = self.postprocess(output.response, class_names=self.class_names)
-
+        answer, evidence = self.postprocess(output.response)
 
         return answer, evidence, output
 
