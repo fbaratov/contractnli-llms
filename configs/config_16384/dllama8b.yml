@@ -1,0 +1,12 @@
+# required_config_keys = ["model", "prompt", "binary", "think", "structure", "options"]
+backend: ollama
+model: llama3.1:8b
+prompt: narendra_nli_nonbinary
+dset_path: data/contract-nli/test.json
+dset_type: contract_nli
+structure: NLIResponse
+binary: False
+options: {
+    "temperature": 1.,
+    "num_ctx": 16384
+}

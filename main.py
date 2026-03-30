@@ -3,12 +3,11 @@ import click
 import logging
 
 from contract_nli.dataset.loader import NLILabel
-logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 import os
 from tqdm import tqdm # type: ignore
 # stuff for prompting
-from backend.dataset.utils import get_evidence, load_dataset
-from inference import process_sample
+from backend.dataset.utils import load_dataset
 from backend.format_json import save_response
 from backend.utils import load_config
 from backend.inference import OllamaInference
@@ -52,7 +51,8 @@ def zero_shot(config, output_dir, dataset):
 @click.option("--output_dir", type=click.Path())
 @click.option("--run_label", type=str, default="")
 @click.option("--n_logprobs", type=int, default=0)
-def main(model_config, output_dir, run_label, seed, n_logprobs):
+@click.option("--temperature", type=float, default=None)
+def main(model_config, output_dir, run_label, seed, n_logprobs, temperature):
     """
     Runs inference based on model config and saves it to specified location. Dataset/model params determined in config, arguments determine run-specific stuff such as seed.
 
@@ -72,6 +72,7 @@ def main(model_config, output_dir, run_label, seed, n_logprobs):
         config["options"] = {"seed": seed}
 
     config["n_logprobs"] = n_logprobs
+
     
     # verify config has all necessary fields
     verify_config(config)
@@ -95,7 +96,13 @@ def main(model_config, output_dir, run_label, seed, n_logprobs):
 
     logger.addHandler(fh)
 
+    # overwrite temperature
+    if temperature is not None:
+        logger.info(f"Setting temperature to {temperature} based on argument")
+        config["options"]["temperature"] = temperature
 
+    logger.info(str(config))
+    
     # run inference
     try:
         loaded_dataset = load_dataset(dset_path=config["dset_path"], dset_type=config["dset_type"])

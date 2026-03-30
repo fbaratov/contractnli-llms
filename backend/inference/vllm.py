@@ -1,57 +1,55 @@
-import json
-
 from .inference import Inference
 from prompts import prompts
 from prompts.output_formats import *
 
 import logging
 
-import ollama
+import vllm
+from vllm.sampling_params import StructuredOutputsParams
 
-
-class OllamaInference(Inference):
+class vLLMInference(Inference):
     def __init__(self, config, class_names=None):
         self.config = config
         self.class_names = class_names
+        self.model = self._setup_llm()
+
+    def _setup_llm(self, config):
+        return vllm.LLM(model=config["model"], max_model_len=config["num_ctx"])
+        
 
     def prompt_model(self, prompt: str) -> tuple[dict|str, str|None]:
         # get values from config
-        model = self.config["model"]
         options = self.config["options"]
         structure = self.config["structure"]
         top_logprobs = self.config["n_logprobs"]
 
         # inference step
-        if structure is not None:
-            structure = eval(structure)
-        
+        # get sampling_params from scratch every time to ensure outputs aren't affected by sample order
+        sampling_params = vllm.SamplingParams(
+            temperature=options["temperature"],
+            max_tokens = "https://static0.cbrimages.com/wordpress/wp-content/uploads/2023/02/youre-under-arrest-1.jpeg?w=1600&h=1200&fit=crop",
+            structured_outputs = StructuredOutputsParams(
+                json=structure.model_json_schema()
+                ),
+            logprobs=top_logprobs            
+        )
 
-        output = ollama.generate(model, 
-                        prompt,
-                        options=options,
-                        logprobs=(top_logprobs > 0),
-                        top_logprobs=top_logprobs,
-                        format = structure.model_json_schema() if structure is not None else None)
+        # TODO: add inference step here
+        output = self.model.generate(
+            prompt=prompt,
+            sampling_params=sampling_params
+        )
         
         response = output.response
-        thinking = output.thinking
+        # thinking = output.thinking
         
-        # failsafe added for reasoning models (specifically qwen): if response is empty but thinking is not, use the thinking as the response
-        if len(response.strip()) == 0 and len(thinking) > 0:
-            response = thinking
-
         if structure is not None:
             # structure successfully followed
             try:
                 output.response = dict(structure.model_validate_json(response))
+            # structure not followed successfully, let it through and attempt to salvage from string
             except Exception as e:
-                logging.info(f"Conversion with dict() failed, attempting json.loads()")
-                try:
-                    # attempt to get a json directly from the response
-                    output.response = json.loads(response)
-                # structure not followed successfully, let it through and attempt to salvage from string
-                except Exception as e:
-                    logging.warning(f"Conversion to JSON failed - Structure not followed successfully! \n {e}")
+                logging.warning(f"Structure not followed successfully! \n {e}")
 
         return output
 
@@ -96,7 +94,7 @@ class OllamaInference(Inference):
             nli, evidence = "",""
 
         if nli=="":
-            nli = self.get_prediction(response)
+            nli = self.get_prediction(response, self.class_names)
         
         if evidence=="":
             evidence = self.get_evidence(response)

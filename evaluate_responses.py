@@ -93,9 +93,9 @@ def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 @click.command()
 @click.option("--response_dir", type=click.Path(exists=True))
 @click.option("--eval_dir", type=click.Path())
-@click.option("--dataset", type=click.Path(exists=True), default="data/test.json")
+@click.option("--dataset", type=click.Path(exists=True), default="data/contract-nli/test.json")
 @click.option("--eval_label")
-@click.option("--dset_type", type=str)
+@click.option("--dset_type", type=str, default="contract_nli")
 def main(response_dir, eval_dir, dataset, eval_label, dset_type):
 
     os.makedirs(eval_dir, exist_ok=True)
@@ -103,7 +103,7 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
     print(f"{response_dir}")
     response_dict = load_response_dict(response_dir)
 
-    if dset_type != "contractnli":
+    if dset_type != "contract_nli":
         dataset = load_dataset(dset_path=dataset, dset_type=dset_type)
         
         # convert dataset to cnli format
