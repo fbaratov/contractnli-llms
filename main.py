@@ -2,11 +2,12 @@ import pickle
 import click
 import logging
 
-from contract_nli.dataset.loader import NLILabel
+from backend.contract_nli_bert.contract_nli.dataset.loader import NLILabel
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 import os
 from tqdm import tqdm # type: ignore
 # stuff for prompting
+import ollama
 from backend.dataset.utils import load_dataset
 from backend.format_json import save_response
 from backend.utils import load_config
@@ -26,9 +27,15 @@ def verify_config(config):
         if key not in options.keys():
             raise KeyError(f"Key '{key}' must be provided in options!")
 
-def zero_shot(config, output_dir, dataset):
+def zero_shot(config, output_dir, dataset, server=None):
 
-    inference = OllamaInference(config, dataset.class_names)
+    if server is None:
+        logging.info("API connecting to server at default port!")
+    else:    
+        logging.info(f"API connecting to server running on address {server}")
+
+    client=ollama.Client(host=server)
+    inference = OllamaInference(config, dataset.class_names, client=client)
 
 
     if config["binary"]:
@@ -52,7 +59,8 @@ def zero_shot(config, output_dir, dataset):
 @click.option("--run_label", type=str, default="")
 @click.option("--n_logprobs", type=int, default=0)
 @click.option("--temperature", type=float, default=None)
-def main(model_config, output_dir, run_label, seed, n_logprobs, temperature):
+@click.option("--server", type=str, default=None)
+def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, server):
     """
     Runs inference based on model config and saves it to specified location. Dataset/model params determined in config, arguments determine run-specific stuff such as seed.
 
@@ -62,6 +70,7 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature):
     :param seed: Description
     :param n_logprobs: Description
     """
+
 
     # set up config 
     config = load_config(model_config)
@@ -95,6 +104,8 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature):
     fh.setFormatter(formatter)
 
     logger.addHandler(fh)
+    
+
 
     # overwrite temperature
     if temperature is not None:
@@ -106,7 +117,7 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature):
     # run inference
     try:
         loaded_dataset = load_dataset(dset_path=config["dset_path"], dset_type=config["dset_type"])
-        zero_shot(config, run_output_dir, loaded_dataset)
+        zero_shot(config, run_output_dir, loaded_dataset, server=server)
         fh.close()
     except:
         logging.exception("Got exception when running inference")

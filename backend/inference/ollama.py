@@ -10,7 +10,8 @@ import ollama
 
 
 class OllamaInference(Inference):
-    def __init__(self, config, class_names=None):
+    def __init__(self, config, class_names=None, client=None):
+        self.client = ollama if client is None else client
         self.config = config
         self.class_names = class_names
 
@@ -26,7 +27,7 @@ class OllamaInference(Inference):
             structure = eval(structure)
         
 
-        output = ollama.generate(model, 
+        output = self.client.generate(model, 
                         prompt,
                         options=options,
                         logprobs=(top_logprobs > 0),
