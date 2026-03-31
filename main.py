@@ -1,8 +1,9 @@
-import pickle
 import click
 import logging
 
-from contract_nli.dataset.loader import NLILabel
+# Load the module from the hyphenated path
+from backend.contract_nli_bert.contract_nli.dataset.loader import NLILabel
+
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
 import os
 from tqdm import tqdm # type: ignore
@@ -12,6 +13,7 @@ from inference import process_sample
 from backend.format_json import save_response
 from backend.utils import load_config
 #print("Prompting utils loaded.")
+
 
 def verify_config(config):
     required_config_keys = ["model", "prompt", "binary", "structure", "options", "backend"]
