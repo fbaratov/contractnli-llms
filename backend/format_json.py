@@ -1,10 +1,7 @@
 import json
 import os
-from tqdm import tqdm
 from .nli_labels import ExNLILabel
 import numpy as np
-import click
-import logging
 
 
 def encode_onehot_vector(prediction):
