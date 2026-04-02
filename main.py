@@ -97,6 +97,7 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     log_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/logs/"
     os.makedirs(log_dir, exist_ok=True)
     log_file = f"{log_dir}/seed{seed}.log"
+    
     logger = logging.getLogger()
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
     fh = logging.FileHandler(filename=log_file)
@@ -114,12 +115,23 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
 
     logger.info(str(config))
     
+    #setup statuses (easier to see if everything works that way)
+    status_running = f"{log_dir}/.seed{seed}_running"
+    status_complete = f"{log_dir}/.seed{seed}_complete"
+    status_failed = f"{log_dir}/.seed{seed}_failed"
+    
     # run inference
     try:
         loaded_dataset = load_dataset(dset_path=config["dset_path"], dset_type=config["dset_type"])
+        open(status_running, "w")
         zero_shot(config, run_output_dir, loaded_dataset, server=server)
+        os.remove(status_running)
+        open(status_complete, "w")
         fh.close()
     except:
+        os.remove(status_running)
+        open(status_failed, "w")
+
         logging.exception("Got exception when running inference")
         fh.close()
         raise
