@@ -1,3 +1,4 @@
+import json
 import pickle
 import click
 import logging
@@ -10,7 +11,7 @@ from tqdm import tqdm # type: ignore
 import ollama
 from backend.dataset.utils import load_dataset
 from backend.format_json import save_response
-from backend.utils import load_config
+from backend.utils import load_config, load_json
 from backend.inference import OllamaInference
 #print("Prompting utils loaded.")
 
@@ -27,7 +28,22 @@ def verify_config(config):
         if key not in options.keys():
             raise KeyError(f"Key '{key}' must be provided in options!")
 
-def zero_shot(config, output_dir, dataset, server=None):
+def output_exists(ex, output_dir):
+    out_path = f"{output_dir}/{ex.document_id}.json"
+    hypothesis_id = ex.hypothesis_id
+    if os.path.exists(out_path):
+        out_path = load_json(out_path)
+
+
+        try:
+            if hypothesis_id in out_path["annotation_sets"][0]["annotations"].keys():
+                return True
+        except KeyError as e:
+            logging.info(f"KeyError for {out_path} when trying to access out_path[\"annotation_sets\"][0][\"annotations\"]")
+
+    return False
+
+def zero_shot(config, output_dir, dataset, server=None, skip_complete=True):
 
     if server is None:
         logging.info("API connecting to server at default port!")
@@ -37,7 +53,11 @@ def zero_shot(config, output_dir, dataset, server=None):
     client=ollama.Client(host=server)
     inference = OllamaInference(config, dataset.class_names, client=client)
 
-
+    try:
+        ollama.pull(model=config["model"])
+    except ollama.ResponseError:
+        logging.error("Model could not be pulled")
+        
     if config["binary"]:
         logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
 
@@ -46,6 +66,11 @@ def zero_shot(config, output_dir, dataset, server=None):
         if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
 
+        if skip_complete and output_exists(ex, output_dir):
+            logging.info(f"Answer for document {ex.document_id} hypothesis {ex.hypothesis_id} exists!")
+            continue
+
+        
         answer, evidence, output = inference.process_sample(ex.__dict__)
 
         # save answer to output/sample_idx
@@ -60,7 +85,8 @@ def zero_shot(config, output_dir, dataset, server=None):
 @click.option("--n_logprobs", type=int, default=0)
 @click.option("--temperature", type=float, default=None)
 @click.option("--server", type=str, default=None)
-def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, server):
+@click.option("--skip_complete", type=bool, default=True)
+def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, server, skip_complete):
     """
     Runs inference based on model config and saves it to specified location. Dataset/model params determined in config, arguments determine run-specific stuff such as seed.
 
@@ -122,9 +148,14 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     
     # run inference
     try:
+        # remove all status files first
+        for status in (status_running, status_complete, status_failed):
+            if os.path.exists(status):
+                os.remove(status)
+
         loaded_dataset = load_dataset(dset_path=config["dset_path"], dset_type=config["dset_type"])
         open(status_running, "w")
-        zero_shot(config, run_output_dir, loaded_dataset, server=server)
+        zero_shot(config, run_output_dir, loaded_dataset, server=server, skip_complete=skip_complete)
         os.remove(status_running)
         open(status_complete, "w")
         fh.close()

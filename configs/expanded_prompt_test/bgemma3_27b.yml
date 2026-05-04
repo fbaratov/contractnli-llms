@@ -1,0 +1,11 @@
+backend: ollama
+model: gemma3:27b
+prompt: nli_expanded
+structure: NLIResponse
+dset_path: data/contract-nli/test.json
+dset_type: contract_nli
+binary: False
+options: {
+    "temperature": 0.1,
+    "num_ctx": 16384
+}
