@@ -21,7 +21,7 @@ for MODEL in "$CONFIG_DIR"/*; do
                     echo "Queuing $MODEL with seed $SEED and temperature $TEMP ..."
                     model_label=$(basename "${MODEL%.*}")
                     run_label="${model_label}_temp${TEMP}"
-                    sbatch run/main_with_server.sh $PYTHON_CMD --seed $SEED --model_config $MODEL --temperature $TEMP --run_label $run_label
+                    sbatch --job-name=mig_inference --time=48:00:00 --partition=gpu-mig-40g run/main_with_server.sh $PYTHON_CMD --seed $SEED --model_config $MODEL --temperature $TEMP --run_label $run_label
                 fi
         done
     done

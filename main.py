@@ -13,6 +13,7 @@ from backend.dataset.utils import load_dataset
 from backend.format_json import save_response
 from backend.utils import load_config, load_json
 from backend.inference import OllamaInference
+import time
 #print("Prompting utils loaded.")
 
 def verify_config(config):
@@ -70,11 +71,13 @@ def zero_shot(config, output_dir, dataset, server=None, skip_complete=True):
             logging.info(f"Answer for document {ex.document_id} hypothesis {ex.hypothesis_id} exists!")
             continue
 
-        
+        start_time = time.time()
         answer, evidence, output = inference.process_sample(ex.__dict__)
+        end_time = time.time()
 
+        logging.info(f"Inference time: {round(end_time-start_time, 3)} seconds")
         # save answer to output/sample_idx
-        save_response(config, ex, answer, evidence, output, output_dir)
+        save_response(config, ex, answer, evidence, output, output_dir, inf_time=(end_time-start_time))
         
 
 @click.command()
