@@ -42,7 +42,7 @@ ollama="/home/baratovfs/ollama/bin/ollama"
  
 OLLAMA_PORT=$(test_ollama_port_closed) #find the first open port from the test_ollama_port function
 echo "Running ollama as: OLLAMA_HOST=127.0.0.1:${OLLAMA_PORT} #ollama serve &"
-OLLAMA_HOST=127.0.0.1:${OLLAMA_PORT} $ollama serve &
+OLLAMA_HOST=127.0.0.1:${OLLAMA_PORT} OLLAMA_LOG_LEVEL=warn $ollama serve &
 
 sleep 30 # Adjust this value if needed
 

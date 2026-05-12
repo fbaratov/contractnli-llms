@@ -44,7 +44,7 @@ def output_exists(ex, output_dir):
 
     return False
 
-def zero_shot(config, output_dir, dataset, server=None, skip_complete=True):
+def zero_shot(config, output_dir, dataset, server=None, skip_complete=True, think:bool=False):
 
     if server is None:
         logging.info("API connecting to server at default port!")
@@ -62,20 +62,24 @@ def zero_shot(config, output_dir, dataset, server=None, skip_complete=True):
     if config["binary"]:
         logging.warning("Skipping NotMentioned labels. Ignore this warning if this is what is meant to happen.")
 
+    if skip_complete:
+        logging.info("Skipping complete inferences...")
+
     # for each sample ==>
     for ex in tqdm(dataset):
         if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
 
+
         if skip_complete and output_exists(ex, output_dir):
-            logging.info(f"Answer for document {ex.document_id} hypothesis {ex.hypothesis_id} exists!")
+            logging.debug(f"Answer for document {ex.document_id} hypothesis {ex.hypothesis_id} exists!")
             continue
 
         start_time = time.time()
-        answer, evidence, output = inference.process_sample(ex.__dict__)
+        answer, evidence, output = inference.process_sample(ex.__dict__, think=config["think"])
         end_time = time.time()
 
-        logging.info(f"Inference time: {round(end_time-start_time, 3)} seconds")
+        logging.info(f"D: {ex.document_id} H: {ex.hypothesis_id} || Inference time: {round(end_time-start_time, 3)} seconds")
         # save answer to output/sample_idx
         save_response(config, ex, answer, evidence, output, output_dir, inf_time=(end_time-start_time))
         

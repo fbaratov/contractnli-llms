@@ -15,7 +15,7 @@ class OllamaInference(Inference):
         self.config = config
         self.class_names = class_names
 
-    def prompt_model(self, prompt: str) -> tuple[dict|str, str|None]:
+    def prompt_model(self, prompt: str, think: bool) -> tuple[dict|str, str|None]:
         # get values from config
         model = self.config["model"]
         options = self.config["options"]
@@ -32,7 +32,8 @@ class OllamaInference(Inference):
                         options=options,
                         logprobs=(top_logprobs > 0),
                         top_logprobs=top_logprobs,
-                        format = structure.model_json_schema() if structure is not None else None)
+                        format = structure.model_json_schema() if structure is not None else None,
+                        think=think)
         
         response = output.response
         thinking = output.thinking

@@ -46,12 +46,12 @@ class Inference:
 
         return nli, evidence
     
-    def process_sample(self, sample: dict):
+    def process_sample(self, sample: dict, think: bool = False):
 
         prompt_template = self.config["prompt"]
         prompt = self.assemble_prompt(sample, prompt_template=prompt_template)
         
-        output = self.prompt_model(prompt)
+        output = self.prompt_model(prompt, think=think)
         
         answer, evidence = self.postprocess(output.response)
 

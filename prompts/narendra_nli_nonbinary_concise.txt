@@ -1,0 +1,5 @@
+Document: {context_text}
+
+Hypothesis: {hypothesis_text}
+
+Given a document and a hypothesis, determine whether the document entails, contradicts, or is unrelated to the hypothesis. Be concise, and limit your answer to no more than 200 words. Answer strictly as \"Entailment\", \"Contradiction\", or \"NotMentioned\".
