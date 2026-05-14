@@ -3,7 +3,7 @@
 #SBATCH --output=alice/%x_%j.log
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00 # 24 hours runtime just in case
+#SBATCH --time=12:00:00 # 24 hours runtime just in case
 #SBATCH --partition=gpu-l4-24g # it will run on anything but this is more likely to work right
 
 
@@ -42,7 +42,7 @@ ollama="/home/baratovfs/ollama/bin/ollama"
  
 OLLAMA_PORT=$(test_ollama_port_closed) #find the first open port from the test_ollama_port function
 echo "Running ollama as: OLLAMA_HOST=127.0.0.1:${OLLAMA_PORT} #ollama serve &"
-OLLAMA_HOST=127.0.0.1:${OLLAMA_PORT} OLLAMA_LOG_LEVEL=warn $ollama serve &
+OLLAMA_HOST=127.0.0.1:${OLLAMA_PORT} $ollama serve &
 
 sleep 30 # Adjust this value if needed
 

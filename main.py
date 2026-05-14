@@ -1,5 +1,3 @@
-import json
-import pickle
 import click
 import logging
 
@@ -11,7 +9,7 @@ from tqdm import tqdm # type: ignore
 import ollama
 from backend.dataset.utils import load_dataset
 from backend.format_json import save_response
-from backend.utils import load_config, load_json
+from backend.utils import load_config, output_exists, get_dirs
 from backend.inference import OllamaInference
 import time
 #print("Prompting utils loaded.")
@@ -29,22 +27,7 @@ def verify_config(config):
         if key not in options.keys():
             raise KeyError(f"Key '{key}' must be provided in options!")
 
-def output_exists(ex, output_dir):
-    out_path = f"{output_dir}/{ex.document_id}.json"
-    hypothesis_id = ex.hypothesis_id
-    if os.path.exists(out_path):
-        out_path = load_json(out_path)
-
-
-        try:
-            if hypothesis_id in out_path["annotation_sets"][0]["annotations"].keys():
-                return True
-        except KeyError as e:
-            logging.info(f"KeyError for {out_path} when trying to access out_path[\"annotation_sets\"][0][\"annotations\"]")
-
-    return False
-
-def zero_shot(config, output_dir, dataset, server=None, skip_complete=True, think:bool=False):
+def zero_shot(config, output_dir, dataset, server=None, skip_complete=True):
 
     if server is None:
         logging.info("API connecting to server at default port!")
@@ -76,16 +59,17 @@ def zero_shot(config, output_dir, dataset, server=None, skip_complete=True, thin
             continue
 
         start_time = time.time()
-        answer, evidence, output = inference.process_sample(ex.__dict__, think=config["think"])
+        answer, evidence, output = inference.process_sample(ex.__dict__) # , think=config["think"])
         end_time = time.time()
 
         logging.info(f"D: {ex.document_id} H: {ex.hypothesis_id} || Inference time: {round(end_time-start_time, 3)} seconds")
         # save answer to output/sample_idx
         save_response(config, ex, answer, evidence, output, output_dir, inf_time=(end_time-start_time))
-        
+
+
 
 @click.command()
-@click.option("--seed", type=int)
+@click.option("--seed", type=int, default=0)
 @click.option("--model_config", type=click.Path(exists=False))
 @click.option("--output_dir", type=click.Path())
 @click.option("--run_label", type=str, default="")
@@ -104,33 +88,28 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     :param n_logprobs: Description
     """
 
+    # this doesn't matter .ollama ignores value. planned.
+    
 
     # set up config 
     config = load_config(model_config)
 
-    if "options" in config.keys():
-        config["options"]["seed"] = seed
-    else:
-        config["options"] = {"seed": seed}
+    config["options"] = {"seed": seed}
 
     config["n_logprobs"] = n_logprobs
+    # config["think"] = None
 
     
-    # verify config has all necessary fields
-    verify_config(config)
 
-    # setup output directory
-    model = config["model"]
-    prompt = config["prompt"]
-    seed = config["options"]["seed"]
-    run_output_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/seed{seed}"
-    os.makedirs(run_output_dir, exist_ok=True)
+    # determine directories
+    run_output_dir, log_dir, run_complete = get_dirs(config, output_dir, run_label, seed)
+
     
     # setup log file
-    log_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/logs/"
+    os.makedirs(run_output_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
     log_file = f"{log_dir}/seed{seed}.log"
-    
+
     logger = logging.getLogger()
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
     fh = logging.FileHandler(filename=log_file)
@@ -139,19 +118,28 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
 
     logger.addHandler(fh)
     
-
-
     # overwrite temperature
     if temperature is not None:
         logger.info(f"Setting temperature to {temperature} based on argument")
         config["options"]["temperature"] = temperature
+    
+    # verify config has all necessary fields
+    verify_config(config)
+    
 
+
+    # config is complete, log it
     logger.info(str(config))
     
     #setup statuses (easier to see if everything works that way)
     status_running = f"{log_dir}/.seed{seed}_running"
     status_complete = f"{log_dir}/.seed{seed}_complete"
     status_failed = f"{log_dir}/.seed{seed}_failed"
+    
+    # cancel this experiment if the run is already marked as complete
+    if run_complete:
+        logging.error("Run is already complete (status file exists)! Cancelling....")
+        raise FileExistsError(f"Run is already complete: {status_complete} exists.")
     
     # run inference
     try:
