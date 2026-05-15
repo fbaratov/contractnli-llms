@@ -94,7 +94,10 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     # set up config 
     config = load_config(model_config)
 
-    config["options"] = {"seed": seed}
+    if "options" in config.keys():
+        config["options"]["seed"] = seed
+    else:
+        config["options"] = {"seed": seed}
 
     config["n_logprobs"] = n_logprobs
     # config["think"] = None
