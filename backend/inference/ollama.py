@@ -32,8 +32,8 @@ class OllamaInference(Inference):
                         options=options,
                         logprobs=(top_logprobs > 0),
                         top_logprobs=top_logprobs,
-                        format = structure.model_json_schema() if structure is not None else None)
-        
+                        format = structure.model_json_schema() if structure is not None else None,
+                        think=think)
         response = output.response
         thinking = output.thinking
         

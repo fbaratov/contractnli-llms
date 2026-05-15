@@ -59,7 +59,7 @@ def zero_shot(config, output_dir, dataset, server=None, skip_complete=True):
             continue
 
         start_time = time.time()
-        answer, evidence, output = inference.process_sample(ex.__dict__) # , think=config["think"])
+        answer, evidence, output = inference.process_sample(ex.__dict__, think=config["think"])
         end_time = time.time()
 
         logging.info(f"D: {ex.document_id} H: {ex.hypothesis_id} || Inference time: {round(end_time-start_time, 3)} seconds")
@@ -98,6 +98,11 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
         config["options"]["seed"] = seed
     else:
         config["options"] = {"seed": seed}
+
+
+    # set thinking to False by default
+    if "think" not in config.keys():
+        config["think"] = False
 
     config["n_logprobs"] = n_logprobs
     # config["think"] = None
