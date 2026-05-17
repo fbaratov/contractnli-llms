@@ -15,7 +15,7 @@ import time
 #print("Prompting utils loaded.")
 
 def verify_config(config):
-    required_config_keys = ["model", "prompt", "binary", "structure", "options", "backend"]
+    required_config_keys = ["model", "prompt", "binary", "structure", "options", "backend", "think"]
     for key in required_config_keys:
         if key not in config.keys():
             raise KeyError(f"Key '{key}' must be in the config!")
@@ -99,11 +99,6 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     else:
         config["options"] = {"seed": seed}
 
-
-    # set thinking to False by default
-    if "think" not in config.keys():
-        config["think"] = False
-
     config["n_logprobs"] = n_logprobs
     # config["think"] = None
 
@@ -144,6 +139,12 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     status_complete = f"{log_dir}/.seed{seed}_complete"
     status_failed = f"{log_dir}/.seed{seed}_failed"
     
+    if config["model"] == "qwen3.5:9b" and os.path.exists(status_running):
+        raise FileExistsError("Qwen3.5 9B is already running elsewhere! Skipping....")
+
+    if config["model"] == "qwen3.5:4b":
+        raise FileExistsError("This is being done on another system! Skipping....")
+
     # cancel this experiment if the run is already marked as complete
     if run_complete:
         logging.error("Run is already complete (status file exists)! Cancelling....")
