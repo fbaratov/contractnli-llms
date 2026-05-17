@@ -9,12 +9,19 @@
 PYTHON_CMD="python main.py ${@:2}"
 echo $PYTHON_CMD
 
-SEEDS=(0 1 42)
-TEMPERATURES=(0.1 0.2 0.3 0.4 0.5) # try these three as the 1's are already done
 CONFIG_DIR=$1
+tempsweep_params="$1/tempsweep.txt"
+
+if [[ ! -f "$tempsweep_params" ]]; then
+    echo "Error: tempsweep.txt not found in '$1'" >&2
+    exit 1
+fi
+
+source "$tempsweep_params"
+
 
 # Loop through the list of seeds
-for MODEL in "$CONFIG_DIR"/*; do
+for MODEL in "$CONFIG_DIR"/*.yml; do
     for TEMP in "${TEMPERATURES[@]}"; do
         for SEED in "${SEEDS[@]}"; do
                 if [ -f "$MODEL" ]; then
