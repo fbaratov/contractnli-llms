@@ -138,12 +138,6 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     status_running = f"{log_dir}/.seed{seed}_running"
     status_complete = f"{log_dir}/.seed{seed}_complete"
     status_failed = f"{log_dir}/.seed{seed}_failed"
-    
-    if config["model"] == "qwen3.5:9b" and os.path.exists(status_running):
-        raise FileExistsError("Qwen3.5 9B is already running elsewhere! Skipping....")
-
-    if config["model"] == "qwen3.5:4b":
-        raise FileExistsError("This is being done on another system! Skipping....")
 
     # cancel this experiment if the run is already marked as complete
     if run_complete:
