@@ -232,4 +232,14 @@ tables
 ensemble
 out
 scraps
+<<<<<<< HEAD
+
+
+run/main_with_server.sh
+run/run_double.sh
+run/tempsweep_alice_mig.sh
+run/tempsweep_alice.sh
+run/tempsweep_snellius.sh
+=======
 .archive
+>>>>>>> b7ae0e23a51a34ad34f4adf6841bb4b42edd0696
