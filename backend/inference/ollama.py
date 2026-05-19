@@ -103,3 +103,56 @@ class OllamaInference(Inference):
             evidence = self.get_evidence(response)
 
         return nli, evidence
+    
+    def _create_prefill(self, response):
+        """
+        Assumes the "explanation" "classification" structure. Won't work otherwise.
+        """
+
+        explanation = response["explanation"]
+
+        prefill = f'{{"explanation": "{explanation}", "classification": "'        
+
+        return prefill
+
+    def classify_from_prefill(self, sample, original_response) -> str:
+
+        prompt_template = self.config["prompt"]
+        user_prompt = self.assemble_prompt(sample, prompt_template=prompt_template)
+
+        model = self.config["model"]
+
+        structure = self.config["structure"]
+        if structure is not None:
+            structure = eval(structure)
+
+        options = self.config["options"].copy()
+        options["temperature"] = 0.0001
+        options["num_predict"] = 100 # very generous
+
+        # inference step
+        
+        prefill = self._create_prefill(original_response)
+
+        completion_response = ollama.chat(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": user_prompt 
+                },
+                {
+                    "role": "assistant",
+                    "content": prefill  # prefill starts here
+                }
+            ],
+            format=structure.model_json_schema(),
+            think=False,
+            options=options
+        )
+        
+        completion = completion_response.message.content
+        full_message = dict(structure.model_validate_json(prefill + completion))
+        prediction = full_message["classification"]
+        return prediction
+    
