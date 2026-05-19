@@ -1,5 +1,7 @@
 import json
 
+from backend.nli_labels import ExNLILabel
+
 from .inference import Inference
 from prompts import prompts
 from prompts.output_formats import *
@@ -115,7 +117,7 @@ class OllamaInference(Inference):
 
         return prefill
 
-    def classify_from_prefill(self, sample, original_response) -> str:
+    def classify_from_explanation(self, sample, original_response) -> str:
 
         prompt_template = self.config["prompt"]
         user_prompt = self.assemble_prompt(sample, prompt_template=prompt_template)
@@ -127,32 +129,60 @@ class OllamaInference(Inference):
             structure = eval(structure)
 
         options = self.config["options"].copy()
-        options["temperature"] = 0.0001
+        options["temperature"] = 0.00001 # keep it low to ensure deterministic output
         options["num_predict"] = 100 # very generous
 
         # inference step
         
-        prefill = self._create_prefill(original_response)
-
-        completion_response = ollama.chat(
-            model=model,
-            messages=[
+        # prefill = self._create_prefill(original_response)
+        messages=[
                 {
                     "role": "user",
                     "content": user_prompt 
                 },
                 {
                     "role": "assistant",
-                    "content": prefill  # prefill starts here
+                    "content": original_response["explanation"] # prefill starts here
+                },
+                {
+                    "role": "assistant",
+                    "format": NLIClassification.model_json_schema()
                 }
-            ],
-            format=structure.model_json_schema(),
+            ]
+
+        completion_response = ollama.chat(
+            model=model,
+            messages=messages,
+            # format=structure.model_json_schema(),
             think=False,
             options=options
         )
         
-        completion = completion_response.message.content
-        full_message = dict(structure.model_validate_json(prefill + completion))
-        prediction = full_message["classification"]
-        return prediction
+        prediction = completion_response.message.content
+        # response = {
+        #     "explanation": original_response["explanation"],
+        #     "classification": prediction
+        # }
+
+        # clean up (necessary for qwen at least)
+        prediction = self._remove_between(prediction, "<think>", "</think>")
+        prediction = prediction.strip()
+
+        # verify that prediction fits one of the labels
+        try:
+            ExNLILabel.from_str(prediction).value
+            return prediction, None
+        
+        except ValueError:
+            # contradiction = ExNLILabel.CONTRADICTION.to_anno_name().lower() in prediction.lower()
+            # entailment = ExNLILabel.ENTAILMENT.to_anno_name().lower() in prediction.lower()
+            # not_mentioned = ExNLILabel.NOT_MENTIONED.to_anno_name().lower() in prediction.lower()
+            
+            # if sum(contradiction, entailment, not_mentioned) == 1:
+            #     return 
+
+            logging.info("Sample produced Invalid Label!")
+
+            return ExNLILabel.INVALID_ANSWER.to_anno_name(), prediction
+
     

@@ -13,6 +13,9 @@ class NLIResponse(BaseModel):
     explanation: str
     classification: Literal["Contradiction", "Entailment", "NotMentioned"]
 
+class NLIClassification(BaseModel):
+    classification: Literal["Contradiction", "Entailment", "NotMentioned"]
+
 class DocNLI(BaseModel):
     explanation: str
     classification: Literal["entailment", "not_entailment"]
