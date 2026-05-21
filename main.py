@@ -122,10 +122,14 @@ def main(model_config, output_dir, run_label, seed, n_logprobs, temperature, ser
     logger.addHandler(fh)
     
     # overwrite temperature
-    if temperature is not None:
+    if temperature is not None and temperature < 0:
+        logger.info(f"Negative temperature {temperature} passed, using temperature from config")
+    elif temperature is not None:
         logger.info(f"Setting temperature to {temperature} based on argument")
         config["options"]["temperature"] = temperature
-    
+    if temperature is None:
+        logger.info(f"Using temperature provided in config options")
+
     # verify config has all necessary fields
     verify_config(config)
     
