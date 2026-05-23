@@ -49,7 +49,10 @@ def zero_shot(config, output_dir, dataset, server=None, skip_complete=True):
         logging.info("Skipping complete inferences...")
 
     # for each sample ==>
-    for ex in tqdm(dataset):
+    for i, ex in enumerate(tqdm(dataset)):
+        # if i % 10 > 0:
+        #     continue
+
         if config["binary"] and ex.label == NLILabel.NOT_MENTIONED:
             continue
 
