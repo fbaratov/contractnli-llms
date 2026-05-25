@@ -241,3 +241,5 @@ run/tempsweep_alice.sh
 run/tempsweep_snellius.sh
 .archive
 .vscode/settings.json
+
+run/
