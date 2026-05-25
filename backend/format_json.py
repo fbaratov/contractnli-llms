@@ -1,10 +1,7 @@
 import json
 import os
-from tqdm import tqdm
 from .nli_labels import ExNLILabel
 import numpy as np
-import click
-import logging
 
 
 def encode_onehot_vector(prediction):
@@ -29,17 +26,19 @@ def encode_spans(evidence):
     #! not yet implemented! TODO: implement :)
     return evidence
 
-def format_annotation(response, prediction: str|dict[str, str], thinking, evidence = None, class_probs: str|None = None, choice: str|None = None, logprobs = None):
+def format_annotation(response, prediction: str|dict[str, str], thinking, evidence = None, class_probs: str|None = None, choice: str|None = None, logprobs = None, inf_time=None, **kwargs):
     choice = encode_onehot_vector(prediction if choice is None else choice)
     spans = encode_spans(evidence)
     annotation = {
         "response": response,
         "thinking": thinking,
+        "inference_time": inf_time,
         "logprobs": logprobs,
         "prediction": prediction,
         "choice": choice,
         "class_probs": encode_dict(choice) if class_probs is None else class_probs,
-        "spans": None
+        "spans": None,
+        **kwargs
     }
     return annotation
 
@@ -61,7 +60,7 @@ def reformat_response(response):
     }
     return reformatted_response
 
-def save_response(config, ex, answer, evidence, output, output_dir):
+def save_response(config, ex, answer, evidence, output, output_dir, inf_time=None, **kwargs):
     out_path = f"{output_dir}/{ex.document_id}.json"
     if os.path.exists(out_path):
         with open(out_path, "r") as f:
@@ -85,8 +84,11 @@ def save_response(config, ex, answer, evidence, output, output_dir):
         response=output.response,
         thinking=output.thinking,
         logprobs=logprob_to_dict(output.logprobs),
-        
+        inf_time=inf_time,
+        **kwargs
         )
+
+
 
     with open(out_path, "w") as f:
         json.dump(response_dict, f)

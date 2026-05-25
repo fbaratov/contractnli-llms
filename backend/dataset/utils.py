@@ -12,7 +12,7 @@ def get_evidence(example: ContractNLIExample):
 def load_dataset(dset_path: str, dset_type):
     dset_type = dset_type.lower()
     match dset_type:
-        case "contractnli":
+        case "contract_nli":
             with open(dset_path) as fin:
                 input_dict = json.load(fin)
             examples = ContractNLIExample.load(input_dict)

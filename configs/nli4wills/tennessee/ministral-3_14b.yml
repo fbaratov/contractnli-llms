@@ -1,10 +1,13 @@
 backend: ollama
-model: gemma3:27b
-prompt: nli4wills
+model: ministral-3:14b
+prompt: nli4wills_concise
 structure: NLI4WillsResponse
 dset_path: data/nli4wills/Tennessee/original_datasets/test.csv
 dset_type: nli4wills
 binary: False
 options: {
-    "temperature": 1.,
+    "temperature": 0.4,
+    "num_ctx": 16384,
+    "num_predict": 5000
 }
+think: False

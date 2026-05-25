@@ -1,0 +1,13 @@
+backend: ollama
+model: qwen3.6:35b
+prompt: narendra_nli_nonbinary_concise
+structure: NLIResponse
+dset_path: data/contract-nli/test.json
+dset_type: contract_nli
+binary: False
+options: {
+    "temperature": 0.3,
+    "num_ctx": 16384,
+    "num_predict": 5000
+}
+think: True
