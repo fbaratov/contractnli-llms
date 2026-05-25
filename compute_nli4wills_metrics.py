@@ -21,7 +21,21 @@ def compute_metrics(predictions, labels):
      metrics = precision | recall | f1 | accuracy
      return metrics
 
-
+def get_invalid_rate(response_dict):
+    
+    results = list(dict(sorted(response_dict.items())).values())
+ 
+    invalid_count = 0
+    total = 0
+    for doc in results:
+        annotation_dict = doc["annotation_sets"][0]["annotations"]
+        total += len(annotation_dict.keys())
+        for hypo_id in annotation_dict.keys():
+            prediction = annotation_dict[hypo_id]["prediction"]
+            if prediction == "InvalidAnswer":
+                invalid_count += 1
+    
+    return invalid_count / total
 
 @click.command()
 @click.option("--response_dir", type=click.Path(exists=True))
@@ -58,12 +72,12 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
      print(correct, wrong, invalid)
      print (invalid / (correct + wrong + invalid))
 
-     # print("Conducting NLI4Wills metrics eval")
-     # metrics = compute_metrics(predictions=predictions, labels=labels)
-
-     # with open(f"{eval_dir}/repro_eval_{eval_label}.json", "w") as f:
-     #    json.dump(metrics, f)
-     # print(metrics)
+     print("Conducting NLI4Wills metrics eval")
+     metrics = compute_metrics(predictions=predictions, labels=labels)
+     metrics["invalid_rate"] = invalid / (correct + wrong + invalid)
+     with open(f"{eval_dir}/repro_eval_{eval_label}.json", "w") as f:
+        json.dump(metrics, f)
+     print(metrics)
      # # confusion_eval(response_dict, eval_dir, dataset, eval_label)
      # # print("Conducting confusion eval")
             
