@@ -1,3 +1,6 @@
+# Introduction
+This repository is used for quickly running inference on the ContractNLI and NLI4Wills datasets using an Ollama backend, as well as for evaluation and analysis of results.
+
 # Installation (WIP)
 
 1. Install the latest version of Ollama.
