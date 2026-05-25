@@ -76,6 +76,21 @@ def confusion_eval(response_dict, eval_dir, dataset, eval_label):
     with open(f"{eval_dir}/confusion_eval_{eval_label}.json", "w") as f:
         json.dump(per_doc, f)
 
+def get_invalid_rate(results):
+    
+    invalid_count = 0
+    total = 0
+
+    for doc in results:
+        annotation_dict = doc["annotation_sets"][0]["annotations"]
+        total += len(annotation_dict.keys())
+        for hypo_id in annotation_dict.keys():
+            prediction = annotation_dict[hypo_id]["prediction"]
+            if prediction == "InvalidAnswer":
+                invalid_count += 1
+    
+    return invalid_count / total
+
 def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 
     results = list(dict(sorted(response_dict.items())).values())
@@ -87,91 +102,11 @@ def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
         task="classification"
     )
 
+    eval_dict["invalid_rate"] = get_invalid_rate(results)
+
     with open(f"{eval_dir}/repro_eval_{eval_label}.json", "w") as f:
         json.dump(eval_dict, f)
 
-def get_invalid_rate(response_dict):
-    
-    results = list(dict(sorted(response_dict.items())).values())
- 
-    invalid_count = 0
-    total = 0
-    for doc in results:
-        annotation_dict = doc["annotation_sets"][0]["annotations"]
-        total += len(annotation_dict.keys())
-        for hypo_id in annotation_dict.keys():
-            prediction = annotation_dict[hypo_id]["prediction"]
-            if prediction == "InvalidAnswer":
-                invalid_count += 1
-    
-    return invalid_count / total
-
-
-# def check_alignment(response_dict) -> None:
-#     correct = 0
-#     incorrect = 0
-#     none_count = 0
-#     multiple_count = 0
-
-#     response_list = list(dict(sorted(response_dict.items())).values())
-
-#     for d in response_list:
-#         annotations = d["annotation_sets"][0]["annotations"]
-#         for key in annotations:
-#             annotation = annotations[key]
-#             prediction = annotation.get("prediction")
-#             if prediction == "InvalidAnswer":
-#                 continue
-            
-#             thinking = annotation.get("thinking")
-#             response = annotation.get("response")
-
-#             if type(response) is dict:
-#                 explanation = response.get("explanation")
-#             elif type(response) is str:
-#                 explanation = thinking
-#             elif type(response) is None:
-#                 explanation = ""
-#             else:
-#                 print("WHATDJFSLDKFJDF")
-            
-#             explanation = explanation.lower()
-
-#             c_words = ["contradicts", "refutes", "Contradiction", "not entail"]
-#             e_words = ["entails", "supports", "Entailment"]
-#             n_words = ["unrelated", "NotMentioned", "not related"]
-#             keywords = {
-#                 "Contradiction": c_words,
-#                 "Entailment": e_words,
-#                 "NotMentioned": n_words
-#             }
-
-#             keyword_present = {
-#                 "Contradiction": False,
-#                 "Entailment": False,
-#                 "NotMentioned": False
-#             }
-
-#             for k, words in keywords.items():
-#                 for w in words:
-#                     if w in explanation:
-#                         keyword_present[k] = True
-
-#             only_one = sum(list(keyword_present.values())) == 1
-#             multiple = sum(list(keyword_present.values())) > 1
-#             no_words = not(only_one or multiple)
-            
-#             if multiple:
-#                 multiple_count += 1
-#             elif no_words:
-#                 none_count += 1
-#             elif only_one and keyword_present[prediction]:
-#                 correct += 1
-#             elif only_one and not keyword_present[prediction]:
-#                 incorrect += 1
-    
-#     return (f"{correct=}, {incorrect=}, {multiple_count=}, {none_count=}")
-    
 
 @click.command()
 @click.option("--response_dir", type=click.Path(exists=True))
@@ -214,7 +149,7 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
 
 
     # print("Conducting reproducibility eval")
-    # reproducibility_eval(response_dict, eval_dir, dataset, eval_label)
+    reproducibility_eval(response_dict, eval_dir, dataset, eval_label)
 
 
     # print("Conducting confusion eval")
