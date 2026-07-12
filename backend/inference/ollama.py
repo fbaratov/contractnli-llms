@@ -25,9 +25,11 @@ class OllamaInference(Inference):
         top_logprobs = self.config["n_logprobs"]
 
         # inference step
-        if structure is not None:
-            structure = eval(structure)
-        
+        try: # i am too tired for a proper fix.
+            if structure is not None:
+                structure = eval(structure)
+        except TypeError:
+            structure = None 
 
         output = self.client.generate(model, 
                         prompt,
