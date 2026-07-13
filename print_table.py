@@ -65,15 +65,26 @@ def print_common_metrics(response_dir):
 
             cls = metrics_dict["macro_label_micro_doc"]["class"]
 
-            acc     = f"{round(cls['accuracy']['average'], 3):.3f} ± {round(cls['accuracy']['std'], 3):.3f}"
+            p_con  = f"{round(cls['precision_contradiction']['average'], 3):.3f} ± {round(cls['precision_contradiction']['std'], 3):.3f}"
+            p_ent  = f"{round(cls['precision_entailment']['average'], 3):.3f} ± {round(cls['precision_entailment']['std'], 3):.3f}"
+            p_nm  = f"{round(cls['precision_not_mentioned']['average'], 3):.3f} ± {round(cls['precision_not_mentioned']['std'], 3):.3f}"
+            precs = [p_con, p_ent, p_nm]
+
+            r_con  = f"{round(cls['recall_contradiction']['average'], 3):.3f} ± {round(cls['recall_contradiction']['std'], 3):.3f}"
+            r_ent  = f"{round(cls['recall_entailment']['average'], 3):.3f} ± {round(cls['recall_entailment']['std'], 3):.3f}"
+            r_nm  = f"{round(cls['recall_not_mentioned']['average'], 3):.3f} ± {round(cls['recall_not_mentioned']['std'], 3):.3f}"
+            recs = [r_con, r_ent, r_nm]
+
             f1_con  = f"{round(cls['f1_contradiction']['average'], 3):.3f} ± {round(cls['f1_contradiction']['std'], 3):.3f}"
             f1_ent  = f"{round(cls['f1_entailment']['average'], 3):.3f} ± {round(cls['f1_entailment']['std'], 3):.3f}"
+            f1_nm  = f"{round(cls['f1_not_mentioned']['average'], 3):.3f} ± {round(cls['f1_not_mentioned']['std'], 3):.3f}"
+            f1s = [f1_con, f1_ent, f1_nm]
 
 
             root_list = root.split("/")
             short_path = f"{root_list[-4]}/{root_list[-2]}"
 
-            rows.append((short_path, acc, f1_con, f1_ent))
+            rows.append([short_path] + precs + recs + f1s)
 
 
     if not rows:
@@ -82,10 +93,10 @@ def print_common_metrics(response_dir):
     
     rows.sort(key=lambda row: row[0])
 
-    headers = ("Path", "Accuracy", "F1(C)", "F1(E)")
+    headers = ("Path", "P(C)", "P(E)", "P(N)", "R(C)", "R(E)", "R(N)", "F1(C)", "F1(E)", "F1(N)")
     col_widths = [
         max(len(headers[i]), max(len(row[i]) for row in rows))
-        for i in range(4)
+        for i in range(len(headers))
     ]
 
     def fmt_row(cols):
@@ -100,3 +111,4 @@ def print_common_metrics(response_dir):
 
 if __name__=="__main__":
     print_eval_metrics(sys.argv[1])
+    print_common_metrics(sys.argv[1])
