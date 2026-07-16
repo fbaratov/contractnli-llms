@@ -11,7 +11,8 @@ def find_relevant_tokens(logprobs, key_phrase):
         buffer_log = ""
         token = logprob["token"]
         clean_token = "".join(token.split())
-        
+
+
         # check if the new subphrase can be added to buffer
         if len(token_buffer) > 0:
             # print("good", len(token_buffer))
@@ -25,6 +26,7 @@ def find_relevant_tokens(logprobs, key_phrase):
                 new_pos.insert(0, i)
                 
                 if clean_keyphrase in subphrase: # clean keyphrase is in the subphrase, a match is found (do "in" instead of "eq" because tokens can mass "eq" up)
+                    print("MATCH")
                     return new_pos
                 elif subphrase in clean_keyphrase: # break after this, because it alters the token buffer shape
                     
@@ -41,7 +43,7 @@ def find_relevant_tokens(logprobs, key_phrase):
                     # append newest token to buffer
                     token_buffer.append(([i], clean_token))
                     
-                    # print(token_buffer)
+                    print(token_buffer)
 
                     break
                 elif j+1 == len(token_buffer): # entire token buffer indexed without finding a match, clean token buffer with only the current token
@@ -67,7 +69,6 @@ def phrase_from_tokens(logprobs, token_pos):
 
 def find_relevant_logprobs_per_response(response, return_first=False, structure=None):
     # set up stuff
-    
     prediction = response["prediction"]
     key_phrase = construct_key_phrase(prediction, structured_field=structure)
     logprobs = response["logprobs"]
@@ -87,8 +88,15 @@ def find_relevant_logprobs_per_response(response, return_first=False, structure=
 def find_relevant_logprobs(responses, structure=None, relevant_scope=None):
     for doc_id, doc_responses in tqdm(responses.items(), desc="Probabilities"):
         for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
+            if hypo_response["prediction"] == ExNLILabel.INVALID_ANSWER.to_anno_name():
+                del responses[doc_id]["annotation_sets"][0]["annotations"][hypo_id]
             if relevant_scope in ["first_token", "label"]:
-                hypo_response["pred_tokens"] = find_relevant_logprobs_per_response(hypo_response, structure=structure, return_first = (relevant_scope=="first_token"))
+                try:
+                    hypo_response["pred_tokens"] = find_relevant_logprobs_per_response(hypo_response, structure=structure, return_first = (relevant_scope=="first_token"))
+                except TypeError as e:
+                    print("Doc and hypo:", doc_id, hypo_id)
+                    print(e)
+                    raise TypeError()
             else:
                 hypo_response["pred_tokens"] = hypo_response["logprobs"]
 
@@ -144,11 +152,18 @@ def remove_invalid(responses: dict):
     # remove all invalid answers, as they are not going to be useful for logprobs.
     counter = 0
     for doc_id, doc_responses in responses.items():
+        if len(doc_responses["annotation_sets"]) > 1:
+            print(doc_id, len(doc_responses["annotation_sets"]))
+
+    for doc_id, doc_responses in responses.items():
         annotations = doc_responses["annotation_sets"][0]["annotations"]
         hypotheses = list(annotations.keys())
         for hypo_id in hypotheses:
-            if annotations[hypo_id]["prediction"] == ExNLILabel.INVALID_ANSWER.to_anno_name():
-                del annotations[hypo_id]
+            if annotations[hypo_id]["prediction"] in (ExNLILabel.INVALID_ANSWER.to_anno_name(), "InvalidAnswer") or annotations[hypo_id]["response"] == "":
+                print(doc_id, hypo_id)
+                del responses[doc_id]["annotation_sets"][0]["annotations"][hypo_id]
                 counter += 1
 
     print(f"Removed {counter} invalid answers!")
+
+    return responses

@@ -60,7 +60,13 @@ def main(m, o):
             e = json.load(f)
             metrics_set.append(e)
 
-    stats = compute_stats(metrics_set)
+    stats = {}
+    
+    stats["total"] = compute_stats([m["total"] for m in metrics_set])
+
+    stats["by_class"] = {}
+    for k,_ in metrics_set[0]["by_class"].items():
+        stats[k] = compute_stats([m["by_class"][k] for m in metrics_set])
     
     with open(out_file, "w") as f:
         json.dump(stats, f, indent=4)

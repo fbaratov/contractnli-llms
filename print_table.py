@@ -20,12 +20,12 @@ def print_eval_metrics(response_dir: str) -> None:
             acc     = f"{round(cls['accuracy']['average'], 3):.3f} ± {round(cls['accuracy']['std'], 3):.3f}"
             f1_con  = f"{round(cls['f1_contradiction']['average'], 3):.3f} ± {round(cls['f1_contradiction']['std'], 3):.3f}"
             f1_ent  = f"{round(cls['f1_entailment']['average'], 3):.3f} ± {round(cls['f1_entailment']['std'], 3):.3f}"
-
-
+            invalid = f"{round(metrics_dict['invalid_rate']['average'], 1):.1f} ± {round(metrics_dict['invalid_rate']['std'], 1):.1f}"
+            inf_time = f"{round(metrics_dict['inference_time']['average'], 1):.1f}"
             root_list = root.split("/")
             short_path = f"{root_list[-4]}/{root_list[-2]}"
 
-            rows.append((short_path, acc, f1_con, f1_ent))
+            rows.append((short_path, acc, f1_con, f1_ent, invalid, inf_time))
 
 
     if not rows:
@@ -34,10 +34,10 @@ def print_eval_metrics(response_dir: str) -> None:
     
     rows.sort(key=lambda row: row[0])
 
-    headers = ("Path", "Accuracy", "F1(C)", "F1(E)")
+    headers = ("Path", "Accuracy", "F1(C)", "F1(E)", "Invalid Rate", "Time (s)")
     col_widths = [
         max(len(headers[i]), max(len(row[i]) for row in rows))
-        for i in range(4)
+        for i in range(len(headers))
     ]
 
     def fmt_row(cols):

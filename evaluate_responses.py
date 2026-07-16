@@ -7,27 +7,17 @@ from backend.evaluation import ExNLILabel, evaluate_all
 # import numpy as np
 import click
 from backend.utils import load_json, load_response_dict
+from collections import Counter
+
 
 def evaluate_responses(hypo_dict, dataset):
     per_doc = {}
 
     organized_dset = organize_dataset(dataset)
 
-
+    preds = []
+    labels = []
     for id, doc_dict in tqdm(hypo_dict.items(), desc="Evaluating NLI"):
-        
-        confusion = {
-            "e_as_e": 0,
-            "c_as_e": 0,
-            "n_as_e": 0,
-            "e_as_c": 0,
-            "c_as_c": 0,
-            "n_as_c": 0,
-            "e_as_n": 0,
-            "c_as_n": 0,
-            "n_as_n": 0,
-            "invalid": 0
-        }
         
 
         hypo_dict = doc_dict["annotation_sets"][0]["annotations"]
@@ -40,23 +30,21 @@ def evaluate_responses(hypo_dict, dataset):
                 print("Skipping file with no prediction key")
                 continue
         
-            prediction = response_dict["prediction"].lower()
+            prediction = response_dict["prediction"]
 
-            label = organized_dset[id]["annotation_sets"][0]["annotations"][hypo_id]["choice"].lower()
+            label = organized_dset[id]["annotation_sets"][0]["annotations"][hypo_id]["choice"]
             
-            label_char = label[0]
-            prediction_char = prediction[0]
-            
-            if prediction_char == "i":
-                dict_key = "invalid"
-            else:
-                dict_key = f"{label_char}_as_{prediction_char}"
-            
-            confusion[dict_key] += 1
+            preds.append(prediction)
+            labels.append(label)
 
-        per_doc[id] = confusion
+    classes = ["NotMentioned", "Entailment", "Contradiction", "InvalidAnswer"]
 
-    return per_doc
+    # Initialize counts
+    matrix = {t: {p: 0 for p in classes} for t in classes}
+    for true_label, pred_label in zip(labels, preds):
+        matrix[true_label][pred_label] += 1
+
+    return matrix
 
 def format_eval_dict(per_doc):
     sum_dict = {k: 0 for k in list(per_doc.values())[0]}
@@ -91,6 +79,17 @@ def get_invalid_rate(results):
     
     return invalid_count / total
 
+def get_inf_time(results):
+    
+    inf_times = []
+    for doc in results:
+        annotation_dict = doc["annotation_sets"][0]["annotations"]
+        for hypo_id in annotation_dict.keys():
+            inf_time = annotation_dict[hypo_id]["inference_time"]
+            inf_times.append(inf_time)
+    
+    return sum(inf_times) / len(inf_times)
+
 def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 
     results = list(dict(sorted(response_dict.items())).values())
@@ -103,7 +102,7 @@ def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
     )
 
     eval_dict["invalid_rate"] = get_invalid_rate(results)
-
+    eval_dict["inference_time"] = get_inf_time(results)
     with open(f"{eval_dir}/repro_eval_{eval_label}.json", "w") as f:
         json.dump(eval_dict, f)
 
@@ -148,12 +147,16 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
 
 
 
-    # print("Conducting reproducibility eval")
-    reproducibility_eval(response_dict, eval_dir, dataset, eval_label)
+    print("Conducting reproducibility eval")
+    try:
+        reproducibility_eval(response_dict, eval_dir, dataset, eval_label)
+    except Exception as e:
+        print("Reproducibility study failed!")
+        print(e)
+        
 
-
-    # print("Conducting confusion eval")
-    # confusion_eval(response_dict, eval_dir, dataset, eval_label)
+    print("Conducting confusion eval")
+    confusion_eval(response_dict, eval_dir, dataset, eval_label)
             
 
 

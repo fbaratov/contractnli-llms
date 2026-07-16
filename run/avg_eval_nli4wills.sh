@@ -47,3 +47,36 @@ for eval_dir in $eval_dirs; do
     echo $PYTHON_CMD
     $PYTHON_CMD
 done
+
+
+
+for eval_dir in $eval_dirs; do
+  # Find JSON files with "confusion" in the name (relative to ROOT_DIR)
+  mapfile -t json_files < <(find "$eval_dir" -type f -name "*confusion_*.json" | sed "s|^$ROOT_DIR/||")
+
+    OUT_FILE="$eval_dir/aggregated_confusion.json"
+    args="$OUT_FILE"
+
+    args=""
+        for file in "${json_files[@]}"; do
+            args+=" $file"
+        done
+    
+
+    # Print array in a readable form
+    if ((${#json_files[@]} > 0)); then
+        echo "Eval directory: ${eval_dir#$ROOT_DIR/}"
+        echo "confusion_jsons=("
+        for file in "${json_files[@]}"; do
+        echo "  \"$file\""
+        done
+        echo ")"
+    fi
+    echo "Output to : $OUT_FILE"
+    echo
+
+    PYTHON_CMD="python json_avg.py $args"
+
+    $PYTHON_CMD
+done
+
