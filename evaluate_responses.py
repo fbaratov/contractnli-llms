@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 from tqdm import tqdm
 from backend.dataset.loader import NLI4WillsLoader
 from backend.dataset.utils import load_dataset, organize_dataset
@@ -80,16 +81,19 @@ def get_invalid_rate(results):
     return invalid_count / total
 
 def get_inf_time(results):
-    
+
     inf_times = []
     for doc in results:
         annotation_dict = doc["annotation_sets"][0]["annotations"]
         for hypo_id in annotation_dict.keys():
             inf_time = annotation_dict[hypo_id]["inference_time"]
             inf_times.append(inf_time)
-    
-    return sum(inf_times) / len(inf_times)
 
+    try:        
+        return sum(inf_times) / len(inf_times)
+    except:
+        return None
+    
 def reproducibility_eval(response_dict, eval_dir, dataset, eval_label):
 
     results = list(dict(sorted(response_dict.items())).values())
@@ -119,6 +123,7 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
     
     print(f"{response_dir}")
     response_dict = load_response_dict(response_dir)
+
 
     # invalid_rate = get_invalid_rate(response_dict)
     # line = (f"{round(invalid_rate, 3)} || {response_dir}")
@@ -152,11 +157,11 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
         reproducibility_eval(response_dict, eval_dir, dataset, eval_label)
     except Exception as e:
         print("Reproducibility study failed!")
-        print(e)
+        print(traceback.format_exc())
         
 
-    print("Conducting confusion eval")
-    confusion_eval(response_dict, eval_dir, dataset, eval_label)
+    # print("Conducting confusion eval")
+    # confusion_eval(response_dict, eval_dir, dataset, eval_label)
             
 
 
