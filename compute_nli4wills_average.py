@@ -34,13 +34,20 @@ def compute_stats(metrics_set):
 
     results = {}
     for k in metrics_set[0].keys():
-        values = [d[k] for d in metrics_set]
-        avg = np.mean(values)
-        std = np.std(values) if len(values) > 1 else 0.0
-        results[k] = {
-            "avg": avg,
-            "std": std
-        }
+        if isinstance(metrics_set[0][k], dict):
+            results[k] = {}
+            for sub_k in metrics_set[0][k].keys():
+                values = [d[k][sub_k] for d in metrics_set]
+                results[k][sub_k] = {
+                    "avg": np.mean(values),
+                    "std": np.std(values) if len(values) > 1 else 0.0
+                }
+        else:
+            values = [d[k] for d in metrics_set]
+            results[k] = {
+                "avg": np.mean(values),
+                "std": np.std(values) if len(values) > 1 else 0.0
+            }
 
     return results
 

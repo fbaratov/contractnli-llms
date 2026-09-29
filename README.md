@@ -57,3 +57,7 @@ Use ```-m``` to specify metrics files to average, and ```-o``` to specify the ou
 
 * ```notebooks/logprob_analysis.ipynb``` - used for running Mann-Whitney U Tests and formatting outputs as a LaTeX table.
 * ```notebooks/temp_plots.ipynb``` - used for compiling files that are used for LaTeX temperature plots.
+
+
+# Generative AI Use Disclosure
+Parts of this repository are AI generated. Generative AI was used only for generating lower-level functions and some non-backend scripts.

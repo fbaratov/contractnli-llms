@@ -57,10 +57,9 @@ for eval_dir in $eval_dirs; do
     OUT_FILE="$eval_dir/aggregated_confusion.json"
     args="$OUT_FILE"
 
-    args=""
-        for file in "${json_files[@]}"; do
-            args+=" $file"
-        done
+    for file in "${json_files[@]}"; do
+        args+=" $file"
+    done
     
 
     # Print array in a readable form

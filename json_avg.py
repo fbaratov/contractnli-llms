@@ -29,25 +29,29 @@ def _merge(values: List[Any]) -> Any:
 
     # Numeric leaf (bool is a subclass of int, so exclude it explicitly)
     if isinstance(first, (int, float)) and not isinstance(first, bool):
-        # print(first,values)
         nums = [float(v) for v in values]
         avg = statistics.mean(nums)
         std = statistics.stdev(nums) if len(nums) > 1 else 0.0
         return {"avg": avg, "std": std}
 
-    # Dict: recurse per key
+    # Dict: recurse per key, including keys that may be missing in some files.
     if isinstance(first, dict):
-        keys = first.keys()
-        return {
-            k: _merge([v[k] for v in values])
-            for k in keys
-        }
+        keys = sorted({k for v in values if isinstance(v, dict) for k in v.keys()})
+        merged = {}
+        for k in keys:
+            present = [v[k] for v in values if isinstance(v, dict) and k in v]
+            if not present:
+                continue
+            merged[k] = _merge(present)
+        return merged
 
-    # List: recurse per index
+    # List: recurse per index, tolerating small length differences.
     if isinstance(first, list):
-        length = len(first)
+        length = max(len(v) for v in values if isinstance(v, list))
         return [
-            _merge([v[i] for v in values])
+            _merge([v[i] for v in values if isinstance(v, list) and i < len(v)])
+            if any(isinstance(v, list) and i < len(v) for v in values)
+            else None
             for i in range(length)
         ]
 
@@ -69,22 +73,21 @@ def average_json_files(paths: List[Union[str, Path]]) -> Any:
         with open(p, "r", encoding="utf-8") as f:
             data.append(json.load(f))
 
-    # print(data)
     return _merge(data)
 
 
-def average_json_files_to_file(paths: List[Union[str, Path]], output_path: Union[str, Path]) -> None:
-    """Same as average_json_files but writes the result to output_path."""
+def average_json_files_to_file(paths: List[Union[str, Path]], out_path: Union[str, Path]) -> None:
+    """Average a list of JSON files and write the merged result to disk."""
     result = average_json_files(paths)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 3:
-        print("Usage: python average_json.py output.json input1.json input2.json ...")
+        print("Usage: python json_avg.py output.json input1.json input2.json ...")
         sys.exit(1)
 
     out_path = sys.argv[1]

@@ -91,7 +91,7 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
 
      metrics["by_class"] = {}
      classes = ["Refute", "Support", "Unrelated", "InvalidAnswer"]
-     for l in range(max(labels)):
+     for l in range(max(labels)+1):
          l_name = classes[l]
          class_preds = [predictions[i] for i, lab in enumerate(labels) if lab == l]
          metrics["by_class"][l_name] = compute_metrics(class_preds, [l] * len(class_preds))
