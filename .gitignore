@@ -240,4 +240,7 @@ run/tempsweep_alice_mig.sh
 run/tempsweep_alice.sh
 run/tempsweep_snellius.sh
 .archive
-.vscode/settings.json
+.vscode
+alice_responses
+
+run
