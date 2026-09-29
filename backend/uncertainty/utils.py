@@ -1,57 +1,68 @@
+import traceback
+
 from tqdm import tqdm 
 from backend.nli_labels import ExNLILabel
 import math
 
+def find_token_sublists(tokens, target, clean_whitespace=True, overlapping=False):
+    """
+    Given a list of tokens (strings, or dicts with a "token" key) and a target
+    string, find all contiguous sublists of tokens whose concatenation
+    contains `target`.
+
+    Returns a list of matches, each a list of token indices (contiguous),
+    in the order they occur. Empty list if no match is found.
+    """
+    def get_text(tok):
+        return tok["token"] if isinstance(tok, dict) else tok
+
+    clean = (lambda s: "".join(s.split())) if clean_whitespace else (lambda s: s)
+
+    target_clean = clean(target)
+    if not target_clean:
+        return []
+
+    # Build the full concatenated string, and a parallel array mapping
+    # each character position back to the token index it came from.
+    full_text_parts = []
+    char_to_token = []
+    for idx, tok in enumerate(tokens):
+        t = clean(get_text(tok))
+        full_text_parts.append(t)
+        char_to_token.extend([idx] * len(t))
+    full_text = "".join(full_text_parts)
+
+    matches = []
+    start = 0
+    while True:
+        pos = full_text.find(target_clean, start)
+        if pos == -1:
+            break
+        end = pos + len(target_clean) - 1
+        token_start = char_to_token[pos]
+        token_end = char_to_token[end]
+        matches.append(list(range(token_start, token_end + 1)))
+        start = pos + 1 if overlapping else pos + len(target_clean)
+
+    return matches
+
+def get_token_sublist(tokens, target, clean_whitespace=True):
+    """Convenience wrapper: returns the first match's token indices, or None."""
+    matches = find_token_sublists(tokens, target, clean_whitespace=clean_whitespace)
+    return matches[-1] if matches else None
+
+# def get_token_sublist_objects(tokens, target, clean_whitespace=True):
+#     """Like find_first_token_sublist, but returns the token dicts/strings themselves."""
+#     indices = find_first_token_sublist(tokens, target, clean_whitespace=clean_whitespace)
+#     if indices is None:
+#         return None
+#     return [tokens[i] for i in indices]
+
 def find_relevant_tokens(logprobs, key_phrase):
-    # print("Assuming direct control")
-    clean_keyphrase = "".join(key_phrase.split()) #remove whitespace to avoid issues
-    token_buffer = []
-    # start checking from the end of the list to reduce searching time
-    for i, logprob in list(reversed(list(enumerate(logprobs)))):
-        buffer_log = ""
-        token = logprob["token"]
-        clean_token = "".join(token.split())
-        
-        # check if the new subphrase can be added to buffer
-        if len(token_buffer) > 0:
-            # print("good", len(token_buffer))
-            for j, tb in enumerate(token_buffer):
-                pos, string = tb # list of token indices and the string they form
-                subphrase = "".join((clean_token + string).split()) # phrase to be evaluated
-                # print(subphrase, "//", clean_keyphrase)
-                # print(token_buffer)
-
-                new_pos = pos.copy()
-                new_pos.insert(0, i)
-                
-                if clean_keyphrase in subphrase: # clean keyphrase is in the subphrase, a match is found (do "in" instead of "eq" because tokens can mass "eq" up)
-                    return new_pos
-                elif subphrase in clean_keyphrase: # break after this, because it alters the token buffer shape
-                    
-                    # print(token_buffer, j, "->", end="")
-                    token_buffer = token_buffer[j:] # clip the buffer to remove definite not-matches
-                    
-                    # update all in the rest of the buffer
-                    for k, _ in enumerate(token_buffer):
-                        k_pos, k_str = token_buffer[k]
-                        k_pos.insert(0, i)
-                        k_str = clean_token + k_str
-                        token_buffer[k] = (k_pos, k_str)
-
-                    # append newest token to buffer
-                    token_buffer.append(([i], clean_token))
-                    
-                    # print(token_buffer)
-
-                    break
-                elif j+1 == len(token_buffer): # entire token buffer indexed without finding a match, clean token buffer with only the current token
-                    # print("Next token")
-                    buffer_line = f"{i} (DUMP): {clean_token} | {token_buffer[0][1]} \n"
-                    buffer_log += buffer_line
-                    token_buffer = [([i], clean_token)]
-                    break # unnecessary but just to make it clear
-        else:
-            token_buffer = [([i], clean_token)]
+    match = get_token_sublist(logprobs, key_phrase)
+    if match is None:
+        raise ValueError(f"key_phrase {key_phrase!r} not found in logprobs")
+    return match
 
 def construct_key_phrase(prediction, structured_field=None):
     if structured_field:
@@ -67,28 +78,56 @@ def phrase_from_tokens(logprobs, token_pos):
 
 def find_relevant_logprobs_per_response(response, return_first=False, structure=None):
     # set up stuff
-    
     prediction = response["prediction"]
     key_phrase = construct_key_phrase(prediction, structured_field=structure)
     logprobs = response["logprobs"]
-    token_pos = find_relevant_tokens(logprobs, key_phrase)
-    key_phrase_tokens = logprobs[token_pos[0]:token_pos[-1]+1]
-    prediction_pos = find_relevant_tokens(key_phrase_tokens, prediction)
-    prediction_pos = [pp + token_pos[0] for pp in prediction_pos]
-    
+    key_phrase_tokens = None
+    # try:
+    #     token_pos = find_relevant_tokens(logprobs, key_phrase)
+    # except Exception as e:
+    #     print(f"""
+    #     EXCEPTION WHEN GETTING TOKEN_POS
+    #     VALUES
+    #         {key_phrase=}
+    #     """)
+    #     raise e
+    # # print(token_pos)
+    # key_phrase_tokens = logprobs[token_pos[0]:token_pos[-1]+1]
+    try:
+        prediction_pos = find_relevant_tokens(logprobs, prediction)
+    except Exception as e:
+        print(f"""
+        EXCEPTION WHEN GETTING PREDICTION_POS
+        VALUES
+            {key_phrase=},
+            {key_phrase_tokens=},
+            {prediction=}
+        """)
+        raise e
+
+    # prediction_pos = [pp + token_pos[0] for pp in prediction_pos]
+    # print(prediction_pos)
     # return the right thing
     if return_first:
         relevant_pos = prediction_pos[0]
         return [logprobs[relevant_pos]]
     else:
         relevant_logprobs = [logprobs[pp] for pp in prediction_pos]
+        # print([lp["token"] for lp in relevant_logprobs])
         return relevant_logprobs
 
 def find_relevant_logprobs(responses, structure=None, relevant_scope=None):
     for doc_id, doc_responses in tqdm(responses.items(), desc="Probabilities"):
         for hypo_id, hypo_response in doc_responses["annotation_sets"][0]["annotations"].items():
+            if hypo_response["prediction"] == ExNLILabel.INVALID_ANSWER.to_anno_name():
+                del responses[doc_id]["annotation_sets"][0]["annotations"][hypo_id]
             if relevant_scope in ["first_token", "label"]:
-                hypo_response["pred_tokens"] = find_relevant_logprobs_per_response(hypo_response, structure=structure, return_first = (relevant_scope=="first_token"))
+                try:
+                    hypo_response["pred_tokens"] = find_relevant_logprobs_per_response(hypo_response, structure=structure, return_first = (relevant_scope=="first_token"))
+                except TypeError as e:
+                    print("Doc and hypo:", doc_id, hypo_id)
+                    print(traceback.format_exc())
+                    raise TypeError()
             else:
                 hypo_response["pred_tokens"] = hypo_response["logprobs"]
 
@@ -144,11 +183,18 @@ def remove_invalid(responses: dict):
     # remove all invalid answers, as they are not going to be useful for logprobs.
     counter = 0
     for doc_id, doc_responses in responses.items():
+        if len(doc_responses["annotation_sets"]) > 1:
+            print(doc_id, len(doc_responses["annotation_sets"]))
+
+    for doc_id, doc_responses in responses.items():
         annotations = doc_responses["annotation_sets"][0]["annotations"]
         hypotheses = list(annotations.keys())
         for hypo_id in hypotheses:
-            if annotations[hypo_id]["prediction"] == ExNLILabel.INVALID_ANSWER.to_anno_name():
-                del annotations[hypo_id]
+            if annotations[hypo_id]["prediction"] in (ExNLILabel.INVALID_ANSWER.to_anno_name(), "InvalidAnswer") or annotations[hypo_id]["response"] == "":
+                print(doc_id, hypo_id)
+                del responses[doc_id]["annotation_sets"][0]["annotations"][hypo_id]
                 counter += 1
 
     print(f"Removed {counter} invalid answers!")
+
+    return responses

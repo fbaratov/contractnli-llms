@@ -14,6 +14,7 @@ metric3 = evaluate.load("f1")
 metric4 = evaluate.load("accuracy")
 
 def compute_metrics(predictions, labels):
+     # print(predictions, labels)
      precision = metric1.compute(predictions=predictions, references=labels, average="macro")
      recall = metric2.compute(predictions=predictions, references=labels, average="macro")
      f1 = metric3.compute(predictions=predictions, references=labels, average="macro")
@@ -36,6 +37,16 @@ def get_invalid_rate(response_dict):
                 invalid_count += 1
     
     return invalid_count / total
+
+def get_confusion(predictions, labels):
+     classes = ["Refute", "Support", "Unrelated", "InvalidAnswer"]
+
+     # Initialize counts
+     matrix = {t: {p: 0 for p in classes} for t in classes}
+     for true_label, pred_label in zip(labels, predictions):
+          matrix[classes[true_label]][classes[pred_label]] += 1
+     
+     return matrix
 
 @click.command()
 @click.option("--response_dir", type=click.Path(exists=True))
@@ -69,18 +80,32 @@ def main(response_dir, eval_dir, dataset, eval_label, dset_type):
           else:
                wrong += 1
 
-     print(correct, wrong, invalid)
-     print (invalid / (correct + wrong + invalid))
+     # print(correct, wrong, invalid)
+     # print (invalid / (correct + wrong + invalid))
 
      print("Conducting NLI4Wills metrics eval")
-     metrics = compute_metrics(predictions=predictions, labels=labels)
-     metrics["invalid_rate"] = invalid / (correct + wrong + invalid)
+     metrics = {}
+     
+     metrics["total"] = compute_metrics(predictions=predictions, labels=labels)
+     metrics["total"]["invalid_rate"] = invalid / (correct + wrong + invalid)
+
+     metrics["by_class"] = {}
+     classes = ["Refute", "Support", "Unrelated", "InvalidAnswer"]
+     for l in range(max(labels)+1):
+         l_name = classes[l]
+         class_preds = [predictions[i] for i, lab in enumerate(labels) if lab == l]
+         metrics["by_class"][l_name] = compute_metrics(class_preds, [l] * len(class_preds))
+
      with open(f"{eval_dir}/repro_eval_{eval_label}.json", "w") as f:
         json.dump(metrics, f)
      print(metrics)
+
      # # confusion_eval(response_dict, eval_dir, dataset, eval_label)
      # # print("Conducting confusion eval")
-            
+          
+     confusion = get_confusion(predictions, labels)
+     with open(f"{eval_dir}/confusion_eval_{eval_label}.json", "w") as f:
+        json.dump(confusion, f)
 
 
 if __name__=="__main__":
