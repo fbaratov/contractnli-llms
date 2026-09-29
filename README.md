@@ -1,13 +1,16 @@
 # Introduction
-This repository is used for quickly running inference on the ContractNLI and NLI4Wills datasets using an Ollama backend, as well as for evaluation and analysis of results.
+This repository serves as the codebase for the paper "Breaking Bureaucracy: Evaluating open-source LLMs for legal document review". It is primarily used for quickly running inference on the ContractNLI and NLI4Wills datasets using an Ollama backend, as well as for evaluation and analysis of results.
 
 # Installation (WIP)
 
-1. Install the latest version of Ollama.
-2. Install any additional package dependencies that arise. 
-3. Download the ContractNLI dataset and place into a `data' folder in the root directory of the repository.
+1. Install Python (3.11.13) and the latest version of Ollama.
+2. Download the ContractNLI dataset and place into a `data' folder in the root directory of the repository.
+3. Install the Conda environment using ```environment.yml```:
 
-This installation process is fairly reliable, and has been used to successfully set this repository up on several Linux and Windows systems.
+```
+conda create --file environment.yml
+```
+
 
 # Running
 
@@ -61,3 +64,7 @@ Use ```-m``` to specify metrics files to average, and ```-o``` to specify the ou
 
 # Generative AI Use Disclosure
 Parts of this repository are AI generated. Generative AI was used only for generating lower-level functions and some non-backend scripts.
+
+
+# Citation
+TBA
