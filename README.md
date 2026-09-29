@@ -1,15 +1,63 @@
+# Introduction
+This repository is used for quickly running inference on the ContractNLI and NLI4Wills datasets using an Ollama backend, as well as for evaluation and analysis of results.
+
 # Installation (WIP)
 
 1. Install the latest version of Ollama.
 2. Install any additional package dependencies that arise. 
 3. Download the ContractNLI dataset and place into a `data' folder in the root directory of the repository.
 
+This installation process is fairly reliable, and has been used to successfully set this repository up on several Linux and Windows systems.
+
 # Running
 
-* main.py - run to do inference with a given config file (see configs folder for examples). run/batch.sh to run a batch of configs and output them all neatly into a given output directory (has to be given as an argument, like for main.py)
+## Inference
 
-* evaluate_responses.py - run to evaluate a given set of responses. run/evaluate_all.sh to do this for all sets of responses in a given directory.
+Use the following command to run inference with a given model config (see ```configs``` for some options). 
 
-* avg_eval.py - averages results for a given set of response directories. use run/avg_eval.sh to make this easier and do it neatly for a given directory (will always average across seeds for a given model config)
+```
+python main.py --model_config PATH_TO_CONFIG --output_dir OUTPUT_DIR
+```
 
-* notebooks/uq_boxplots.ipynb - contains code/outputs for UQ boxplots. Not super clean, but runs.
+Model options can be provided via the config file, and additional arguments can also be provided for ```main.py```, including seed, temperature, and the ollama server address (see that script for more details).
+
+
+## Evaluation
+
+Evaluation can be ran using ```evaluate_responses.py``` or ```compute_nli4wills_metrics.py```, depending on the dataset that you are using.
+
+For ContractNLI:
+
+```
+python evaluate_responses.py --response_dir RESPONSE_DIR --eval_dir EVAL_DIR --dataset DATASET
+```
+* ```RESPONSE_DIR```: path to directory containing response jsons,
+* ```EVAL_DIR```: output directory,
+* ```DATASET```: path to ContractNLI dataset file. 
+
+For NLI4Wills-Idaho and NLI4Wills-Tennessee:
+```
+python compute_nli4wills_metrics.py --response_dir RESPONSE_DIR --eval_dir EVAL_DIR --dataset DATASET
+```
+* ```RESPONSE_DIR```: path to directory containing response jsons,
+* ```EVAL_DIR```: output directory,
+* ```DATASET```: path to json dataset file. 
+
+### Getting average evaluations:
+
+Use ```avg_eval.py``` for ContractNLI and ```compute_nli4wills_average.py``` for the NLI4Wills datasets. The arguments are the same for both:
+
+```
+python avg_eval.py -m metrics1.json -m metrics2.json -m metrics3.json -o out.json
+```
+Use ```-m``` to specify metrics files to average, and ```-o``` to specify the output file.
+
+# Notebooks
+
+
+* ```notebooks/logprob_analysis.ipynb``` - used for running Mann-Whitney U Tests and formatting outputs as a LaTeX table.
+* ```notebooks/temp_plots.ipynb``` - used for compiling files that are used for LaTeX temperature plots.
+
+
+# Generative AI Use Disclosure
+Parts of this repository are AI generated. Generative AI was used only for generating lower-level functions and some non-backend scripts.

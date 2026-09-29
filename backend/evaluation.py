@@ -77,7 +77,7 @@ def evaluate_class(y_true, y_prob) -> Dict[str, float]:
     metrics = {
         'accuracy': sklearn.metrics.accuracy_score(y_true, y_pred)
     }
-    for label in (ExNLILabel.ENTAILMENT, ExNLILabel.CONTRADICTION):
+    for label in (ExNLILabel.ENTAILMENT, ExNLILabel.CONTRADICTION, ExNLILabel.NOT_MENTIONED):
         ln = label.name.lower()
         _y_true = y_true == label.value
         _y_pred = y_pred == label.value

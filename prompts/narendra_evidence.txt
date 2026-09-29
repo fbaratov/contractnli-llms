@@ -1,8 +1,0 @@
-Document: {contract}
-
-Hypothesis: {hypothesis}
-
-Label: {label}
-
-Given a document and a hypothesis, if the label is 'Entailment' extract evidence verbatim from the document that support the hypothesis. If the label is 'Contraction', extract evidence verbatim from the document that contradicts the hypothesis
-Evidence:

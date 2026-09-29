@@ -231,3 +231,16 @@ fun_outputs.txt
 tables
 ensemble
 out
+scraps
+
+
+run/main_with_server.sh
+run/run_double.sh
+run/tempsweep_alice_mig.sh
+run/tempsweep_alice.sh
+run/tempsweep_snellius.sh
+.archive
+.vscode
+alice_responses
+
+run

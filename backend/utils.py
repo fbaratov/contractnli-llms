@@ -1,6 +1,7 @@
 import yaml
 import json
 from tqdm import tqdm
+import logging
 import os
 
 def load_config(yaml_path):
@@ -30,3 +31,30 @@ def load_response_dict(response_dir):
 
     return file_dict
 
+def output_exists(ex, output_dir):
+    out_path = f"{output_dir}/{ex.document_id}.json"
+    hypothesis_id = ex.hypothesis_id
+    if os.path.exists(out_path):
+        out_path = load_json(out_path)
+
+
+        try:
+            if hypothesis_id in out_path["annotation_sets"][0]["annotations"].keys():
+                return True
+        except KeyError as e:
+            logging.info(f"KeyError for {out_path} when trying to access out_path[\"annotation_sets\"][0][\"annotations\"]")
+
+    return False
+
+def get_dirs(config, output_dir, run_label, seed):
+    model = config["model"]
+    prompt = config["prompt"]
+
+    run_output_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/seed{seed}"
+    log_dir = f"{output_dir}/{model.replace(':', '_')}/{prompt}/{run_label}/logs/"
+
+
+    status_complete_path = f"{log_dir}/.seed{seed}_complete"
+    run_complete = os.path.exists(status_complete_path)
+
+    return run_output_dir, log_dir, run_complete

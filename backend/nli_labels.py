@@ -34,6 +34,8 @@ class ExNLILabel(enum.Enum):
             # LLM addition
             case 'InvalidAnswer':
                 return cls.INVALID_ANSWER
+            case 'invalidanswer':
+                return cls.INVALID_ANSWER
             case None:
                 return cls.INVALID_ANSWER
             

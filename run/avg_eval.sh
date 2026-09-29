@@ -18,7 +18,7 @@ eval_dirs=$(find "$ROOT_DIR" -type d -name "eval")
 
 # Process each eval directory
 for eval_dir in $eval_dirs; do
-  # Find JSON files with "confusion" in the name (relative to ROOT_DIR)
+  # Find JSON files with "repro" in the name (relative to ROOT_DIR)
   mapfile -t json_files < <(find "$eval_dir" -type f -name "*repro*.json" | sed "s|^$ROOT_DIR/||")
 
     args=""
@@ -46,12 +46,12 @@ for eval_dir in $eval_dirs; do
     $PYTHON_CMD
 done
 
-# boilerplate ftw
+# # boilerplate ftw
 
-# Process each eval directory
+# # Process each eval directory
 for eval_dir in $eval_dirs; do
   # Find JSON files with "confusion" in the name (relative to ROOT_DIR)
-  mapfile -t json_files < <(find "$eval_dir" -type f -name "*confusion*.json" | sed "s|^$ROOT_DIR/||")
+  mapfile -t json_files < <(find "$eval_dir" -type f -name "*confusion_*.json" | sed "s|^$ROOT_DIR/||")
 
     args=""
         for file in "${json_files[@]}"; do
