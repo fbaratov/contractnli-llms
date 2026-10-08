@@ -66,9 +66,9 @@ Use ```-m``` to specify metrics files to average, and ```-o``` to specify the ou
 Parts of this repository are AI generated. Generative AI was used only for generating lower-level functions and some non-backend scripts.
 
 
-# Citation
+# Citation (preprint)
 ```
-@article{baratov2026breaking,
+@article{breakingbureaucracy2026,
   title={Breaking Bureaucracy: Evaluating open-source LLMs for legal document review},
   author={Baratov, Farrukh and van Stein, Niki and Verberne, Suzan},
   journal={arXiv preprint arXiv:2610.06345},
