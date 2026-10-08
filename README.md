@@ -1,7 +1,7 @@
 # Introduction
 This repository serves as the codebase for the paper "Breaking Bureaucracy: Evaluating open-source LLMs for legal document review". It is primarily used for quickly running inference on the ContractNLI and NLI4Wills datasets using an Ollama backend, as well as for evaluation and analysis of results.
 
-# Installation (WIP)
+# Installation
 
 1. Install Python (3.11.13) and the latest version of Ollama.
 2. Download the ContractNLI dataset and place into a `data' folder in the root directory of the repository.
@@ -67,4 +67,11 @@ Parts of this repository are AI generated. Generative AI was used only for gener
 
 
 # Citation
-TBA
+```
+@article{baratov2026breaking,
+  title={Breaking Bureaucracy: Evaluating open-source LLMs for legal document review},
+  author={Baratov, Farrukh and van Stein, Niki and Verberne, Suzan},
+  journal={arXiv preprint arXiv:2610.06345},
+  year={2026}
+}
+```
